@@ -93,9 +93,19 @@ export async function deleteContactData(db: Db, userId: number | string, igId: s
     ["contacts", () => db.from("contacts").delete().eq("user_id", userId).eq("ig_id", igId)],
   ]
   // Conversation flows (e.g. RAIOX): remove the answers and any result file (PDF) kept for this person.
-  const { data: flows } = await db.from("lead_flows").select("result_path, result_cover_path").eq("user_id", userId).eq("ig_id", igId)
-  const files = (flows || []).flatMap((r: any) => [r.result_path, r.result_cover_path]).filter(Boolean)
-  if (files.length) await db.storage.from("arquivos").remove(files)
+  const { data: flows } = await db.from("lead_flows").select("id, result_path, result_cover_path").eq("user_id", userId).eq("ig_id", igId)
+  const files: string[] = (flows || []).flatMap((r: any) => [r.result_path, r.result_cover_path]).filter(Boolean)
+  for (const r of flows || []) {
+    // Every page image of the Raio-X is stored as <user>/raiox/<flow id>-<random>.png
+    const { data: listed } = await db.storage.from("arquivos").list(`${userId}/raiox`, { search: String(r.id) })
+    for (const item of listed || []) files.push(`${userId}/raiox/${item.name}`)
+  }
+  if (files.length) {
+    const unique = [...new Set(files)]
+    await db.from("tracked_links").delete().eq("user_id", userId).eq("ig_id", igId)
+    await db.from("files").delete().eq("user_id", userId).in("storage_path", unique)
+    await db.storage.from("arquivos").remove(unique)
+  }
   steps.push(["lead_flows", () => db.from("lead_flows").delete().eq("user_id", userId).eq("ig_id", igId)])
   const { data: conv } = await db.from("conversations").select("id").eq("user_id", userId).eq("recipient_id", igId).maybeSingle()
   if (conv) {

@@ -3,13 +3,13 @@ import { type NextRequest, NextResponse } from "next/server"
 import { agentUser, isAgentAuthorized, unauthorized } from "@/lib/agent"
 import { FILES_BUCKET } from "@/lib/files"
 import { createTrackedLink } from "@/lib/links"
-import { sendTextDM } from "@/lib/instagram-api"
+import { sendMediaDM, sendTextDM } from "@/lib/instagram-api"
 import { recordEvent, addTags } from "@/lib/contacts"
 import { sendAlert } from "@/lib/notify"
 
 // Queue of Raio-X requests created by the "raiox" conversation flow (lib/flows.ts, table lead_flows).
 //   GET  /api/agent/raiox                         → claims the oldest pending request (or { request: null })
-//   POST { action: "upload-url", id }             → signed URL to upload the PDF (and cover) of a claimed request
+//   POST { action: "upload-url", id }             → signed URL to upload the PDF (kind "pdf") or a page image (kind "image")
 //   POST { action: "deliver", id, pdf_path, ... } → sends the PDF link in the lead's Direct and closes the request
 //   POST { action: "fail", id, error }            → gives up (the owner gets an alert)
 // Instagram only allows a message to a person within 24h of their last message, so older requests are not delivered.
@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
   if (row.status !== "analisando") return NextResponse.json({ error: `Pedido está "${row.status}", não "analisando"` }, { status: 409 })
 
   if (body.action === "upload-url") {
-    const kind = body.kind === "cover" ? "cover" : "pdf"
-    const path = `${user.id}/raiox/${row.id}-${randomUUID().slice(0, 6)}.${kind === "cover" ? "png" : "pdf"}`
+    const kind = body.kind === "pdf" ? "pdf" : "image"
+    const path = `${user.id}/raiox/${row.id}-${randomUUID().slice(0, 6)}.${kind === "pdf" ? "pdf" : "png"}`
     const { data, error } = await db.storage.from(FILES_BUCKET).createSignedUploadUrl(path)
     if (error || !data) return NextResponse.json({ error: `Não foi possível preparar o envio: ${error?.message}` }, { status: 500 })
     return NextResponse.json({ path, signedUrl: data.signedUrl })
@@ -109,26 +109,47 @@ export async function POST(request: NextRequest) {
     const link = await createTrackedLink(db, { userId: user.id, automationId: row.automation_id, igId: row.ig_id }, { fileId: file.id })
     if (!link) return NextResponse.json({ error: "Não foi possível criar o link" }, { status: 500 })
 
-    // Anything the analysis could not read is said openly in the message (and marked "Não verificado" in the PDF).
+    // The Raio-X pages go as images straight into the conversation (PDF links do not open reliably inside Instagram on
+    // some phones); the PDF link follows as a keepsake. Anything the analysis could not read is said openly.
+    const imagePaths: string[] = Array.isArray(body.image_paths)
+      ? body.image_paths.map(String).filter((p: string) => p.startsWith(`${user.id}/raiox/`) && p.endsWith(".png")).slice(0, 6)
+      : []
     const gaps: string[] = Array.isArray(body.not_verified) ? body.not_verified.map((g: unknown) => one(g, 120)).filter(Boolean).slice(0, 5) : []
+    const token = user.access_token
+    const to = { id: row.ig_id }
+    const pause = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+    let delivered = false
+    if (imagePaths.length) {
+      const intro = await sendTextDM(token, to, "Seu Raio-X ficou pronto. Vou te mandar as páginas aqui na conversa.")
+      delivered = intro.ok
+      const { data: signed } = await db.storage.from(FILES_BUCKET).createSignedUrls(imagePaths, 3600)
+      for (const s of signed || []) {
+        if (!s.signedUrl) continue
+        await pause(1200)
+        const r = await sendMediaDM(token, to, "image", s.signedUrl)
+        delivered = delivered || r.ok
+      }
+      await pause(1200)
+    }
     const parts = [
-      "Seu Raio-X ficou pronto. Está aqui:",
+      imagePaths.length ? "Para guardar, a versão em PDF:" : "Seu Raio-X ficou pronto. Está aqui:",
       link,
       one(body.summary, 240),
       gaps.length
-        ? `O que eu não consegui verificar: ${gaps.join("; ")}. Está marcado como "Não verificado" no PDF. Se quiser que eu complete, me manda o que faltou aqui no Direct.`
+        ? `O que eu não consegui verificar: ${gaps.join("; ")}. Está marcado como "Não verificado". Se quiser que eu complete, me manda o que faltou aqui no Direct.`
         : "",
       "Se quiser conversar sobre o que ele mostra, é só responder aqui.",
     ].filter(Boolean)
-    const sent = await sendTextDM(user.access_token, { id: row.ig_id }, parts.join("\n\n"))
-    if (!sent.ok) {
+    const sent = await sendTextDM(token, to, parts.join("\n\n"))
+    if (!sent.ok && !delivered) {
       await db.from("lead_flows").update({ status: "falhou", last_error: `Direct recusou: ${JSON.stringify(sent.error).slice(0, 250)}`, updated_at: new Date().toISOString() }).eq("id", row.id)
       await sendAlert(db, `raiox-falhou:${row.id}`, "Raio-X não chegou ao lead", `@${row.username || "?"}: o Instagram recusou o envio. O PDF está em Arquivos.`)
       return NextResponse.json({ error: "Instagram recusou o envio" }, { status: 502 })
     }
 
     await db.from("lead_flows").update({
-      status: "entregue", result_path: pdfPath, result_cover_path: body.cover_path ? String(body.cover_path) : null,
+      status: "entregue", result_path: pdfPath, result_cover_path: imagePaths[0] || null,
       delivered_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_error: null,
     }).eq("id", row.id)
     await recordEvent(db, user.id, row.ig_id, "content_sent", { automationId: row.automation_id })
