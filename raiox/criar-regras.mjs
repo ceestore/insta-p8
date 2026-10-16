@@ -1,5 +1,8 @@
 // Cria (ou atualiza) as regras RAIOX da conta @cloviseduardo: comentário e Direct com a palavra RAIOX.
-// Rode DEPOIS da migração 010 (tabela lead_flows):  node raiox/criar-regras.mjs
+// Rode DEPOIS da migração 010 (tabela lead_flows):
+//   node raiox/criar-regras.mjs <@conta> <id_do_post>   → regra só nos comentários desse post (uso normal)
+//   node raiox/criar-regras.mjs <@conta> --dm           → regra de Direct (RAIOX enviado por mensagem, vale para a conta toda)
+// Sem id de post e sem --dm, não cria nada: a regra nunca vira global sem o dono pedir.
 import { createRequire } from "node:module"
 import { readEnv } from "../conteudo/kit/common.mjs"
 
@@ -9,6 +12,10 @@ const env = readEnv()
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 
 const USERNAME = (process.argv[2] || "cloviseduardo").replace(/^@/, "")
+const ARG = process.argv[3] || ""
+const DM = ARG === "--dm"
+const MEDIA_ID = DM ? "" : ARG.replace(/\D/g, "")
+if (!DM && !MEDIA_ID) throw new Error("Informe o id do post (ex.: node raiox/criar-regras.mjs @cloviseduardo 1789...) ou --dm")
 const { data: user } = await db.from("users").select("id, username").eq("username", USERNAME).maybeSingle()
 if (!user) throw new Error(`Conta @${USERNAME} não está conectada`)
 
@@ -40,12 +47,11 @@ const content = {
   },
 }
 
-const rules = [
-  { name: "RAIOX: comentário", trigger_source: "comment", trigger_type: "keyword" },
-  { name: "RAIOX: Direct", trigger_source: "dm", trigger_type: "keyword" },
-]
-for (const r of rules) {
-  const row = { user_id: user.id, ...r, trigger_value: "raiox, raio-x, raio x", response_type: "pro", response_content: content, is_active: true, specific_media_id: null }
+const rules = DM
+  ? [{ name: "RAIOX: Direct", trigger_source: "dm", trigger_type: "keyword", media: null }]
+  : [{ name: `RAIOX: post ${MEDIA_ID}`, trigger_source: "comment", trigger_type: "keyword", media: MEDIA_ID }]
+for (const { media, ...r } of rules) {
+  const row = { user_id: user.id, ...r, trigger_value: "raiox, raio-x, raio x", response_type: "pro", response_content: content, is_active: true, specific_media_id: media }
   const { data: existing } = await db.from("automations").select("id").eq("user_id", user.id).eq("name", r.name).maybeSingle()
   const { error } = existing
     ? await db.from("automations").update({ ...row, updated_at: new Date().toISOString() }).eq("id", existing.id)
