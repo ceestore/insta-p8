@@ -47,6 +47,7 @@ export default function DashboardLayout({
                 <Sidebar
                     className="h-full border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
                     username={username || "Usuário"}
+                    userId={userId}
                     profilePic={profilePic}
                     onLogout={logout}
                     collapsed={sidebarCollapsed}
@@ -59,7 +60,7 @@ export default function DashboardLayout({
                 {/* Mobile Header (Visible only on small screens) */}
                 <header className="md:hidden h-16 border-b border-border bg-background flex items-center justify-between px-4 sticky top-0 z-40">
                     <BrandLogo className="h-8" />
-                    <MobileNav username={username || "Usuário"} profilePic={profilePic} onLogout={logout} />
+                    <MobileNav username={username || "Usuário"} userId={userId} profilePic={profilePic} onLogout={logout} />
                 </header>
 
                 <ConnectionBanner userId={userId} />
