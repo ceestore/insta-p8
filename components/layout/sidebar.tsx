@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BrandLogo } from "@/components/brand-logo"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { AccountSwitcher } from "@/components/layout/account-switcher"
 
 const NAV = [
   { href: "/dashboard", label: "Início", icon: "/icons/home.svg" },
@@ -22,6 +23,7 @@ const NAV = [
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   username?: string
+  userId?: string | null
   profilePic?: string | null
   onLogout?: () => void
   onNavigate?: () => void
@@ -29,7 +31,7 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   onToggle?: () => void
 }
 
-export function Sidebar({ className, username = "usuario", profilePic, onLogout, onNavigate, collapsed = false, onToggle, ...props }: SidebarProps) {
+export function Sidebar({ className, username = "usuario", userId, profilePic, onLogout, onNavigate, collapsed = false, onToggle, ...props }: SidebarProps) {
   const pathname = usePathname()
 
   const itemClass = (active: boolean) => cn(
@@ -67,6 +69,7 @@ export function Sidebar({ className, username = "usuario", profilePic, onLogout,
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
+        <AccountSwitcher userId={userId ?? null} collapsed={collapsed} />
         {!collapsed && <div className="mb-3 flex items-center justify-between px-1"><span className="text-xs text-muted-foreground">Aparência</span><ThemeToggle className="h-7 w-14" /></div>}
         <div className={cn("flex items-center rounded-lg bg-sidebar-accent p-2", collapsed ? "justify-center" : "gap-2.5")}>
           <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">

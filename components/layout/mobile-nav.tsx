@@ -8,11 +8,12 @@ import { useState } from "react"
 
 export interface MobileNavProps {
     username?: string
+    userId?: string | null
     profilePic?: string | null
     onLogout?: () => void
 }
 
-export function MobileNav({ username, profilePic, onLogout }: MobileNavProps) {
+export function MobileNav({ username, userId, profilePic, onLogout }: MobileNavProps) {
     const [open, setOpen] = useState(false)
 
     return (
@@ -26,6 +27,7 @@ export function MobileNav({ username, profilePic, onLogout }: MobileNavProps) {
                 <Sidebar
                     className="h-full border-none bg-transparent"
                     username={username}
+                    userId={userId}
                     profilePic={profilePic}
                     onLogout={onLogout}
                     onNavigate={() => setOpen(false)}
