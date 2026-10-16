@@ -23,27 +23,32 @@ const { error: probe } = await db.from("lead_flows").select("id").limit(1)
 if (probe) throw new Error(`A tabela lead_flows não existe: rode a migração 010 no Supabase antes. (${probe.message})`)
 
 const content = {
-  direct_send: true,
+  // Comentário: a pessoa recebe um cartão com o botão e só depois de tocar a conversa começa (abre a janela de resposta).
+  // Direct (--dm): a pessoa já escreveu, então a primeira pergunta sai direto.
+  direct_send: false,
   check_follow: false,
   reply_mode: "both",
-  message:
-    "Oi! Vou montar o seu Raio-X de anúncios, gratuito. Para começar, me manda o @ do Instagram ou o site do seu negócio.",
+  optin_title: "Quer receber o seu Raio-X gratuito?",
+  optin_subtitle: "Eu analiso o Instagram e o site do seu negócio e te mando o resultado aqui.",
+  optin_button: "Sim, quero o Raio-X",
+  message: "Perfeito. Qual é o @ do Instagram do seu negócio?",
   public_replies: ["Te mandei no direct.", "Já te chamei no direct.", "Olha o direct, te mandei uma mensagem."],
   add_tags: ["raiox"],
   flow: {
     id: "raiox",
     followups: [
+      "Obrigado. E qual é o site do seu negócio? Se não tiver, responda: não tenho.",
       "Você já anuncia hoje? Se sim, quanto investe por mês, mais ou menos?",
-      "E qual é o seu maior objetivo agora: mais clientes, mais pedidos de orçamento ou vender um produto específico?",
+      "Por último: qual é o seu maior objetivo agora? Mais clientes, mais pedidos de orçamento ou vender um produto específico?",
     ],
     validate_first: "contact",
-    retry_message: "Não consegui identificar o negócio. Me manda o @ do Instagram (por exemplo @minhaloja) ou o endereço do site.",
+    retry_message: "Não consegui identificar o @. Me manda o @ do Instagram do seu negócio, por exemplo @minhaloja.",
     done_message:
-      "Recebi tudo. Vou analisar o perfil e o site e te mando o seu Raio-X por aqui, em PDF. Se algum ponto eu não conseguir ler, eu te aviso qual foi.",
+      "Recebi tudo. Vou analisar o perfil e o site e te mando o seu Raio-X por aqui. Se algum ponto eu não conseguir ler, eu te aviso qual foi.",
     done_tag: "raiox-pedido",
     notify: true,
     notify_title: "Novo pedido de Raio-X",
-    labels: ["Perfil/site", "Anuncia e investimento", "Objetivo"],
+    labels: ["@ do Instagram", "Site", "Anuncia e investimento", "Objetivo"],
   },
 }
 

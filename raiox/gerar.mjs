@@ -135,6 +135,13 @@ h2 small { font-family: 'Manrope'; font-weight: 500; font-size: 23px; color: var
 .site { margin-top: 18px; font-size: 23px; color: #C9C1B2; }
 .foot { margin-top: 40px; font-size: 20px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
 .foot b { color: var(--tinta); }
+/* páginas para o Direct */
+body.slide .page { min-height: 1350px; padding-top: 48px; }
+.slidehead { display: flex; justify-content: space-between; align-items: center; }
+.slidehead .logo svg { height: 58px; }
+.slidehead .pag { font-weight: 600; font-size: 20px; color: var(--muted); }
+body.slide h2 { margin-top: 44px; }
+body.slide .cta { margin-top: 44px; }
 /* capa */
 body.capa { background: var(--verde-escuro); color: var(--creme); }
 .capa .page { height: 1350px; padding: 64px 72px 0; position: relative; }
@@ -158,7 +165,7 @@ const fontesCss = () => CSS.replace("__FR__", font("Fraunces.ttf")).replace("__F
 const metaLinha = (d) =>
   [d.handle ? `<b>${esc(d.handle)}</b>` : "", esc(d.segmento || ""), esc(d.cidade || "")].filter(Boolean).join(" · ")
 
-function paginaHtml(d) {
+function pedacos(d) {
   const checks = d.checks
     .map((c) => {
       const s = STATUS[c.status]
@@ -178,6 +185,16 @@ function paginaHtml(d) {
   const nvTexto = nv.length
     ? `<p class="foot"><b>O que eu não consegui verificar:</b> ${nv.map(esc).join(" ")} Se você me mandar o que faltou, eu completo esse ponto.</p>`
     : ""
+  const cta = `<div class="cta"><div class="label">Próximo passo</div><h2>Quer isso funcionando <em>no seu negócio?</em></h2>
+<div class="offer"><span class="price">R$97</span><span class="what">no 1º mês, pagamento único</span></div>
+<ul><li>Conta, públicos e pagamento configurados, com até 2 campanhas no ar.</li><li>Se a estrutura e as campanhas não estiverem no ar em 7 dias, devolvo os R$97.</li><li>Você fala direto comigo, do primeiro contato ao relatório do mês.</li></ul>
+<div class="btn">Responda esta conversa no Direct</div><div class="site">cloviseduardo.com</div></div>`
+  const foot = `<p class="foot">Análise feita em ${esc(d.data)} apenas com informações públicas do negócio. Não tive acesso à conta de anúncios nem aos números internos. Verba de anúncio é paga direto à plataforma, separada do valor acima.</p>`
+  return { checks, leaks, acoes, nvTexto, cta, foot }
+}
+
+function paginaHtml(d) {
+  const { checks, leaks, acoes, nvTexto, cta, foot } = pedacos(d)
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Raio-X de Anúncios - ${esc(d.negocio)}</title><style>${fontesCss()}</style></head><body><div class="page">
 <div class="logo">${svg("logo-horizontal-positivo.svg")}</div>
 <div class="head"><div class="label">Raio-X de Anúncios<span>${esc(d.data)}</span></div><h1>${esc(d.negocio)}</h1><div class="meta">${metaLinha(d)}</div></div>
@@ -188,13 +205,25 @@ function paginaHtml(d) {
 ${leaks}
 <h2>As 3 primeiras ações<small>nesta ordem</small></h2>
 <div class="card acoes">${acoes}</div>
-<div class="cta"><div class="label">Próximo passo</div><h2>Quer isso funcionando <em>no seu negócio?</em></h2>
-<div class="offer"><span class="price">R$97</span><span class="what">no 1º mês, pagamento único</span></div>
-<ul><li>Conta, públicos e pagamento configurados, com até 2 campanhas no ar.</li><li>Se a estrutura e as campanhas não estiverem no ar em 7 dias, devolvo os R$97.</li><li>Você fala direto comigo, do primeiro contato ao relatório do mês.</li></ul>
-<div class="btn">Responda esta conversa no Direct</div><div class="site">cloviseduardo.com</div></div>
+${cta}
 ${nvTexto}
-<p class="foot">Análise feita em ${esc(d.data)} apenas com informações públicas do negócio. Não tive acesso à conta de anúncios nem aos números internos. Verba de anúncio é paga direto à plataforma, separada do valor acima.</p>
+${foot}
 </div></body></html>`
+}
+
+// Páginas 2 a 5, no formato do Direct (1080 de largura): o Raio-X lido direto na conversa, sem abrir link.
+function slidesHtml(d) {
+  const { checks, leaks, acoes, nvTexto, cta, foot } = pedacos(d)
+  const total = 5
+  const moldura = (n, corpo) => `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><style>${fontesCss()}</style></head><body class="slide"><div class="page">
+<div class="slidehead"><div class="logo">${svg("logo-horizontal-positivo.svg")}</div><div class="pag">${esc(d.negocio)} · ${n} de ${total}</div></div>
+${corpo}</div></body></html>`
+  return [
+    moldura(2, `<h2>O que eu olhei<small>6 pontos</small></h2><div class="card checks">${checks}</div>`),
+    moldura(3, `<h2>Os 3 vazamentos<small>onde você perde cliente hoje</small></h2>${leaks}`),
+    moldura(4, `<h2>As 3 primeiras ações<small>nesta ordem</small></h2><div class="card acoes">${acoes}</div>${nvTexto}`),
+    moldura(5, `${cta}${foot}`),
+  ]
 }
 
 function capaHtml(d) {
@@ -210,7 +239,7 @@ function capaHtml(d) {
 <div class="head"><div class="label">Raio-X de Anúncios<span>${esc(d.data)}</span></div><h1>${esc(d.negocio)}</h1><div class="meta">${metaLinha(d)}</div></div>
 <div class="resumo"><div class="label">Em uma frase</div><p>${esc(d.resumo)}</p></div>
 <div class="grid">${chips}</div>
-<div class="strip">O Raio-X completo está no PDF<span>3 vazamentos e 3 ações</span></div>
+<div class="strip">O Raio-X completo está nas páginas a seguir<span>3 vazamentos e 3 ações</span></div>
 </div></body></html>`
 }
 
@@ -231,6 +260,7 @@ async function main() {
   mkdirSync(saida, { recursive: true })
   const base = path.join(saida, `raio-x-${slug(d.negocio)}`)
 
+  let pgs = []
   const browser = await puppeteer.launch({ executablePath: chrome, headless: true, args: ["--no-sandbox"] })
   try {
     const page = await browser.newPage()
@@ -251,10 +281,22 @@ async function main() {
       console.error(`CAPA ESTOUROU em ${Math.round(16 - folga)}px: encurte o resumo ou o nome do negócio.`)
       process.exit(3)
     }
+    const paginas = []
+    const htmls = slidesHtml(d)
+    for (let i = 0; i < htmls.length; i++) {
+      const pg = await browser.newPage()
+      await pg.setViewport({ width: 1080, height: 1350, deviceScaleFactor: 1 })
+      await pg.setContent(htmls[i], { waitUntil: "load" })
+      await pg.evaluate("document.fonts.ready")
+      const arquivo = `${base}-p${i + 2}.png`
+      await pg.screenshot({ path: arquivo, fullPage: true })
+      paginas.push(arquivo)
+    }
+    pgs = paginas
   } finally {
     await browser.close()
   }
-  console.log(JSON.stringify({ pdf: `${base}.pdf`, capa: `${base}-capa.png`, altura: undefined }))
+  console.log(JSON.stringify({ pdf: `${base}.pdf`, capa: `${base}-capa.png`, paginas: pgs }))
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

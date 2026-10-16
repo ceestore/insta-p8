@@ -599,7 +599,8 @@ async function privateReplyAndRecord(db: Db, user: any, rule: any, content: any,
     const direct = content.direct_send === true && content.check_follow !== true
     await recordEvent(db, user.id, senderId, direct ? "content_sent" : "optin_sent", { automationId: rule.id })
     // A conversation flow starts when its first message goes out; the next replies are answers (see handleFlowAnswer).
-    const flowCfg = flowOf(content)
+    // With the "Quero receber" card, the flow starts when the person taps the button (see handleMessagingEvent).
+    const flowCfg = direct ? flowOf(content) : null
     if (flowCfg) {
       await startFlow(db, user.id, senderId, flowCfg.id, rule.id)
       await recordEvent(db, user.id, senderId, "flow_q1", { automationId: rule.id })

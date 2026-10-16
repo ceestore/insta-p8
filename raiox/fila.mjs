@@ -37,21 +37,21 @@ if (cmd === "proximo") {
   const dados = JSON.parse(readFileSync(a, "utf8"))
   // gerar.mjs sai com erro se a validação reprovar o texto
   const out = execFileSync("node", [path.join(AQUI, "gerar.mjs"), a, b], { encoding: "utf8" })
-  const { pdf, capa } = JSON.parse(out.trim().split("\n").pop())
+  const { pdf, capa, paginas = [] } = JSON.parse(out.trim().split("\n").pop())
   const up = await post({ action: "upload-url", id, kind: "pdf" })
   await enviar(up.signedUrl, pdf, "application/pdf")
-  let coverPath
-  try {
-    const upc = await post({ action: "upload-url", id, kind: "cover" })
-    await enviar(upc.signedUrl, capa, "image/png")
-    coverPath = upc.path
-  } catch {}
+  const imagePaths = []
+  for (const img of [capa, ...paginas]) {
+    const upi = await post({ action: "upload-url", id, kind: "image" })
+    await enviar(upi.signedUrl, img, "image/png")
+    imagePaths.push(upi.path)
+  }
   const naoVerificado = [...(dados.nao_verificado || []), ...dados.checks.filter((c) => c.status === "nv").map((c) => c.area)]
   const r = await post({
     action: "deliver",
     id,
     pdf_path: up.path,
-    cover_path: coverPath,
+    image_paths: imagePaths,
     business: dados.negocio,
     summary: dados.resumo,
     not_verified: [...new Set(naoVerificado)],
