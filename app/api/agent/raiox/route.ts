@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
       imagePaths.length ? "Para guardar, a versão em PDF:" : "Seu Raio-X ficou pronto. Está aqui:",
       link,
       one(body.summary, 240),
+      `Se fizer sentido colocar isso em prática comigo, o 1º mês de gestão custa R$97, com garantia de 7 dias: ${process.env.RAIOX_OFERTA_URL || "https://go.hotmart.com/W106592197V"}`,
       gaps.length
         ? `O que eu não consegui verificar: ${gaps.join("; ")}. Está marcado como "Não verificado". Se quiser que eu complete, me manda o que faltou aqui no Direct.`
         : "",
