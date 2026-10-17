@@ -37,6 +37,7 @@ const STATUS = {
 }
 const AREAS = ["Perfil e bio", "Constância", "Conteúdo", "Site e oferta", "Caminho até a conversa", "Anúncios ativos"]
 
+const OFERTA_URL = process.env.RAIOX_OFERTA_URL || "https://go.hotmart.com/W106592197V"
 const esc = (t) => String(t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 const slug = (t) => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "negocio"
 const font = (file) => readFileSync(path.join(ASSETS, file)).toString("base64")
@@ -131,6 +132,7 @@ h2 small { font-family: 'Manrope'; font-weight: 500; font-size: 23px; color: var
 .cta ul { list-style: none; margin-top: 22px; }
 .cta li { font-size: 25px; color: #E4DCCB; padding-left: 30px; position: relative; margin-top: 10px; }
 .cta li::before { content: ''; position: absolute; left: 0; top: 17px; width: 14px; height: 2px; background: var(--ouro); }
+a.btn { text-decoration: none; }
 .btn { display: inline-block; margin-top: 34px; background: var(--terracota); color: #fff; font-weight: 700; font-size: 28px; padding: 22px 40px; border-radius: 999px; }
 .site { margin-top: 18px; font-size: 23px; color: #C9C1B2; }
 .foot { margin-top: 40px; font-size: 20px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
@@ -188,7 +190,7 @@ function pedacos(d) {
   const cta = `<div class="cta"><div class="label">Próximo passo</div><h2>Quer isso funcionando <em>no seu negócio?</em></h2>
 <div class="offer"><span class="price">R$97</span><span class="what">no 1º mês, pagamento único</span></div>
 <ul><li>Conta, públicos e pagamento configurados, com até 2 campanhas no ar.</li><li>Se a estrutura e as campanhas não estiverem no ar em 7 dias, devolvo os R$97.</li><li>Você fala direto comigo, do primeiro contato ao relatório do mês.</li></ul>
-<div class="btn">Responda esta conversa no Direct</div><div class="site">cloviseduardo.com</div></div>`
+<a class="btn" href="${OFERTA_URL}">Começar por R$97</a><div class="site">${OFERTA_URL.replace(/^https?:\/\//, "")} · ou responda esta conversa</div></div>`
   const foot = `<p class="foot">Análise feita em ${esc(d.data)} apenas com informações públicas do negócio. Não tive acesso à conta de anúncios nem aos números internos. Verba de anúncio é paga direto à plataforma, separada do valor acima.</p>`
   return { checks, leaks, acoes, nvTexto, cta, foot }
 }
