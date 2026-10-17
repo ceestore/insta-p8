@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Coleta, só de páginas públicas, o que o Raio-X precisa de um perfil do Instagram e/ou de um site.
 
-Uso:  python raiox/coletar.py --handle cloviseduardo --site https://exemplo.com.br [--posts 8]
+Uso:  python contas/cloviseduardo/raiox/coletar.py --handle cloviseduardo --site https://exemplo.com.br [--posts 8]
 Saída: um JSON no stdout. Campo `erros` lista o que NÃO foi possível ler (vira "Não verificado" no Raio-X).
 
 Usa Scrapling (pip install scrapling). Sem login, sem contornar bloqueio: se o Instagram pedir login ou bloquear,

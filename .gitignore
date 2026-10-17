@@ -38,5 +38,8 @@ conteudo/musicas/
 *.local.sql
 
 # Raio-X automatico
-raiox/pedidos/
-raiox/saida/
+contas/cloviseduardo/raiox/pedidos/
+contas/cloviseduardo/raiox/saida/
+
+# Marca da CEE Store (arquivos pesados, ficam so no computador)
+contas/cee_webstore/marca/

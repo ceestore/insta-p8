@@ -91,7 +91,7 @@ até ficar bom.
 ## 5. Conferir antes de publicar
 
 ```bash
-node carrossel/kit/publish.mjs carrossel/posts/<pasta> --check
+node carrossel/kit/publish.mjs carrossel/posts/<pasta> --check --conta @cee_webstore
 ```
 
 Valida a pasta, a conexão com o Instagram e a permissão de publicação, sem publicar nada. Se falhar por permissão,
@@ -105,7 +105,7 @@ confirmação se, no pedido atual, o usuário disse explicitamente para publicar
 ## 6. Publicar e criar a regra
 
 ```bash
-node carrossel/kit/publish.mjs carrossel/posts/<pasta>
+node carrossel/kit/publish.mjs carrossel/posts/<pasta> --conta @cee_webstore
 ```
 
 O script envia os slides, publica o carrossel com a legenda e cria a regra (comentário com a palavra → "Quero receber"
@@ -122,8 +122,8 @@ possa ser usada (nunca da Amazon para afiliado; sem foto aparece o emoji). Antes
 um produto já cadastrado (o link é a chave).
 
 ```bash
-node conteudo/kit/vitrine.mjs --listar
-node conteudo/kit/vitrine.mjs carrossel/posts/<pasta>
+node conteudo/kit/vitrine.mjs --listar --conta @cee_webstore
+node conteudo/kit/vitrine.mjs carrossel/posts/<pasta> --conta @cee_webstore
 ```
 
 Informe o número do produto na vitrine (https://cee-automacao.vercel.app/links).

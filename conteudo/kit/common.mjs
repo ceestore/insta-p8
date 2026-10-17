@@ -7,6 +7,18 @@ import path from "node:path"
 import { pathToFileURL } from "node:url"
 
 const require = createRequire(import.meta.url)
+
+// Conta do Instagram em que o script trabalha. Obrigatória: sem ela, nenhum script publica nem agenda.
+//   node ...mjs <args> --conta @cee_webstore      (ou defina AGENT_ACCOUNT no ambiente da sessão)
+// O --conta é lido e removido de process.argv aqui, para não atrapalhar os argumentos de cada script.
+function lerConta() {
+  const i = process.argv.indexOf("--conta")
+  if (i < 0) return ""
+  const valor = process.argv[i + 1] || ""
+  process.argv.splice(i, 2)
+  return valor
+}
+export const CONTA = lerConta() || process.env.AGENT_ACCOUNT || ""
 export const KIT_DIR = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"))
 export const ROOT = path.resolve(KIT_DIR, "../..")
 export const FFMPEG = require("ffmpeg-static")
@@ -245,7 +257,10 @@ export function readEnv() {
   return { ...env, ...process.env }
 }
 
-export function agentApi() {
+export function agentApi(conta = CONTA) {
+  if (!conta) {
+    throw new Error("Informe a conta com --conta @cee_webstore ou --conta @cloviseduardo (ou defina AGENT_ACCOUNT). Sem conta, o script não roda, para não publicar na conta errada.")
+  }
   const env = readEnv()
   const base = (env.AGENT_BASE_URL || "https://cee-automacao.vercel.app").replace(/\/$/, "")
   const key = env.AUTOMATION_API_KEY
@@ -253,7 +268,7 @@ export function agentApi() {
   return async function api(route, init = {}) {
     const res = await fetch(`${base}/api/agent/${route}`, {
       ...init,
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...(init.headers || {}) },
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "X-Account": conta, ...(init.headers || {}) },
     })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(`${route}: ${json.error || `HTTP ${res.status}`}`)

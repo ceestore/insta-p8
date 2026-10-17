@@ -1,6 +1,7 @@
 // Publishes a built carousel and creates its comment rule through the system's agent API.
-//   node carrossel/kit/publish.mjs <dir>            publish for real
-//   node carrossel/kit/publish.mjs <dir> --check    only checks connection, permission and files
+//   node carrossel/kit/publish.mjs <dir> --conta @cee_webstore            publish for real
+//   node carrossel/kit/publish.mjs <dir> --conta @cee_webstore --check    only checks connection, permission and files
+// --conta is required (or AGENT_ACCOUNT): the script never picks an account by itself.
 //
 // Needs in .env.local: AUTOMATION_API_KEY (same value as on Vercel). Optional: AGENT_BASE_URL.
 // <dir>/post.json:
@@ -22,6 +23,12 @@ import { readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs"
 import path from "node:path"
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "../..")
+let CONTA = process.env.AGENT_ACCOUNT || ""
+{
+  const i = process.argv.indexOf("--conta")
+  if (i >= 0) { CONTA = process.argv[i + 1] || ""; process.argv.splice(i, 2) }
+}
+if (!CONTA) throw new Error("Informe a conta com --conta @cee_webstore ou --conta @cloviseduardo (ou defina AGENT_ACCOUNT).")
 const dir = path.resolve(process.argv[2] || ".")
 const checkOnly = process.argv.includes("--check")
 
@@ -45,7 +52,7 @@ if (!KEY) throw new Error("AUTOMATION_API_KEY não encontrada no .env.local")
 async function api(route, init = {}) {
   const res = await fetch(`${BASE}/api/agent/${route}`, {
     ...init,
-    headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json", ...(init.headers || {}) },
+    headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json", "X-Account": CONTA, ...(init.headers || {}) },
   })
   const json = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(`${route}: ${json.error || `HTTP ${res.status}`}`)

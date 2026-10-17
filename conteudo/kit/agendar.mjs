@@ -14,6 +14,7 @@
 //   ]
 // }
 // Defaults: reel → out/reel.mp4 + cover out/capa.jpg · carousel → out/slide-N.jpg · story → "media" is required.
+// --conta @cee_webstore (ou @cloviseduardo) é obrigatório.
 // Caption and DM rule come from <dir>/post.json (same format as carrossel/kit/publish.mjs; "post" overrides the file).
 // For several products in one post (combo), post.json may have "links": [{ "title": "🦖 Dinossauro", "url": "https://…" }]
 // instead of "link": every line goes in the DM, below dmMessage.
@@ -25,7 +26,7 @@
 
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import path from "node:path"
-import { agentApi, mediaDuration, readJson } from "./common.mjs"
+import { agentApi, CONTA, mediaDuration, readJson } from "./common.mjs"
 
 const week = path.resolve(process.argv[2] || ".")
 const checkOnly = process.argv.includes("--check")
@@ -168,4 +169,4 @@ for (const it of items) {
   writeFileSync(resultFile, JSON.stringify(done, null, 2))
   console.log(`agendado  ${fmt(it.when)}  ${it.label}`)
 }
-console.log(`\nPronto: ${items.length} publicações na fila. Veja com: node conteudo/kit/agenda.mjs`)
+console.log(`\nPronto: ${items.length} publicações na fila. Veja com: node conteudo/kit/agenda.mjs --conta ${CONTA}`)

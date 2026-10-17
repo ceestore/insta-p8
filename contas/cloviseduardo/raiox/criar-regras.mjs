@@ -1,10 +1,10 @@
 // Cria (ou atualiza) as regras RAIOX da conta @cloviseduardo: comentário e Direct com a palavra RAIOX.
 // Rode DEPOIS da migração 010 (tabela lead_flows):
-//   node raiox/criar-regras.mjs <@conta> <id_do_post>   → regra só nos comentários desse post (uso normal)
-//   node raiox/criar-regras.mjs <@conta> --dm           → regra de Direct (RAIOX enviado por mensagem, vale para a conta toda)
+//   node contas/cloviseduardo/raiox/criar-regras.mjs <@conta> <id_do_post>   → regra só nos comentários desse post (uso normal)
+//   node contas/cloviseduardo/raiox/criar-regras.mjs <@conta> --dm           → regra de Direct (RAIOX enviado por mensagem, vale para a conta toda)
 // Sem id de post e sem --dm, não cria nada: a regra nunca vira global sem o dono pedir.
 import { createRequire } from "node:module"
-import { readEnv } from "../conteudo/kit/common.mjs"
+import { readEnv } from "../../../conteudo/kit/common.mjs"
 
 const require = createRequire(import.meta.url)
 const { createClient } = require("@supabase/supabase-js")
@@ -15,7 +15,7 @@ const USERNAME = (process.argv[2] || "cloviseduardo").replace(/^@/, "")
 const ARG = process.argv[3] || ""
 const DM = ARG === "--dm"
 const MEDIA_ID = DM ? "" : ARG.replace(/\D/g, "")
-if (!DM && !MEDIA_ID) throw new Error("Informe o id do post (ex.: node raiox/criar-regras.mjs @cloviseduardo 1789...) ou --dm")
+if (!DM && !MEDIA_ID) throw new Error("Informe o id do post (ex.: node contas/cloviseduardo/raiox/criar-regras.mjs @cloviseduardo 1789...) ou --dm")
 const { data: user } = await db.from("users").select("id, username").eq("username", USERNAME).maybeSingle()
 if (!user) throw new Error(`Conta @${USERNAME} não está conectada`)
 
