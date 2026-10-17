@@ -1,13 +1,13 @@
 // Fila de pedidos do Raio-X (API /api/agent/raiox). Usado pela skill /raiox-automatico.
-//   node raiox/fila.mjs proximo --conta @cloviseduardo            → pega o pedido mais antigo (ou {"request":null})
-//   node raiox/fila.mjs entregar <id> <dados.json> <pasta_saida> --conta @cloviseduardo
-//        gera o PDF (raiox/gerar.mjs), envia ao armazenamento e manda o link no Direct do lead
-//   node raiox/fila.mjs falhou <id> "motivo" --conta @cloviseduardo
+//   node contas/cloviseduardo/raiox/fila.mjs proximo --conta @cloviseduardo            → pega o pedido mais antigo (ou {"request":null})
+//   node contas/cloviseduardo/raiox/fila.mjs entregar <id> <dados.json> <pasta_saida> --conta @cloviseduardo
+//        gera o PDF (contas/cloviseduardo/raiox/gerar.mjs), envia ao armazenamento e manda o link no Direct do lead
+//   node contas/cloviseduardo/raiox/fila.mjs falhou <id> "motivo" --conta @cloviseduardo
 import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { agentApi } from "../conteudo/kit/common.mjs"
+import { agentApi, CONTA } from "../../../conteudo/kit/common.mjs"
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
@@ -17,9 +17,9 @@ const flag = (name) => {
   const [, v] = args.splice(i, 2)
   return v || ""
 }
-const conta = flag("--conta") || "@cloviseduardo"
+const conta = flag("--conta") || CONTA || "@cloviseduardo"
 const [cmd, id, a, b] = args
-const api0 = agentApi()
+const api0 = agentApi(conta)
 const api = (route, init = {}) => api0(route, { ...init, headers: { "X-Account": conta, ...(init.headers || {}) } })
 const post = (body) => api("raiox", { method: "POST", body: JSON.stringify(body) })
 

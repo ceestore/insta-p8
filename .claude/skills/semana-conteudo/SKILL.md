@@ -134,9 +134,9 @@ Abra cada Story e slide.
 
 ```bash
 node conteudo/kit/combo.mjs conteudo/semanas/<semana>/<combo>       # depois dos Reels
-node conteudo/kit/vitrine.mjs conteudo/semanas/<semana> --check
+node conteudo/kit/vitrine.mjs conteudo/semanas/<semana> --check --conta @cee_webstore
 node conteudo/kit/previa.mjs conteudo/semanas/<semana>
-node conteudo/kit/agendar.mjs conteudo/semanas/<semana> --check
+node conteudo/kit/agendar.mjs conteudo/semanas/<semana> --check --conta @cee_webstore
 ```
 
 Envie ao usuário (SendUserFile): as imagens de `previa/`, 2 ou 3 Reels de amostra (`out/reel.mp4`) e um resumo:
@@ -145,9 +145,9 @@ quantos posts por dia, produtos, palavras-chave, os ganchos dos Reels e quais sa
 ## 6. Agendar
 
 ```bash
-node conteudo/kit/vitrine.mjs conteudo/semanas/<semana>
-node conteudo/kit/agendar.mjs conteudo/semanas/<semana>
-node conteudo/kit/agenda.mjs
+node conteudo/kit/vitrine.mjs conteudo/semanas/<semana> --conta @cee_webstore
+node conteudo/kit/agendar.mjs conteudo/semanas/<semana> --conta @cee_webstore
+node conteudo/kit/agenda.mjs --conta @cee_webstore
 ```
 
 Diga quantos posts entraram na fila e que dá para acompanhar/cancelar no painel em **Agenda de posts**. Se algum

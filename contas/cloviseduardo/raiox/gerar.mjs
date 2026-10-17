@@ -1,5 +1,5 @@
 // Gera o Raio-X de Anúncios (PDF + capa PNG) na marca do Clóvis Eduardo a partir de um JSON.
-// Uso: node raiox/gerar.mjs dados.json [pasta_de_saida]
+// Uso: node contas/cloviseduardo/raiox/gerar.mjs dados.json [pasta_de_saida]
 //
 // Campos do JSON:
 //   negocio, handle, segmento, cidade, data (DD/MM/AAAA), resumo
@@ -248,14 +248,14 @@ function capaHtml(d) {
 // ---------- execução ----------
 async function main() {
   const [arq, saidaArg] = process.argv.slice(2)
-  if (!arq) throw new Error("Uso: node raiox/gerar.mjs dados.json [pasta_de_saida]")
+  if (!arq) throw new Error("Uso: node contas/cloviseduardo/raiox/gerar.mjs dados.json [pasta_de_saida]")
   const d = JSON.parse(readFileSync(arq, "utf8"))
   const erros = validar(d)
   if (erros.length) {
     console.error("RAIO-X REPROVADO NA VALIDAÇÃO:\n- " + erros.join("\n- "))
     process.exit(2)
   }
-  if (!existsSync(path.join(ASSETS, "logo-horizontal-negativo.svg"))) throw new Error("Falta raiox/assets/logo-horizontal-negativo.svg")
+  if (!existsSync(path.join(ASSETS, "logo-horizontal-negativo.svg"))) throw new Error("Falta contas/cloviseduardo/raiox/assets/logo-horizontal-negativo.svg")
   const chrome = CHROME_CANDIDATES.find((p) => existsSync(p))
   if (!chrome) throw new Error("Chrome/Edge não encontrado. Defina CHROME_PATH.")
   const saida = path.resolve(saidaArg || path.join(path.dirname(arq), "saida"))

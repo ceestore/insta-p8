@@ -1,6 +1,19 @@
-# Guia da CEE Store — como usar tudo o que foi criado
+# Guia do Insta Auto — como usar tudo o que foi criado
 
 Este é o ponto de partida. Se ficar perdido, volte aqui.
+
+## 0. Duas contas, um sistema
+
+O mesmo sistema atende **duas contas**, cada uma com a sua pasta de instruções, a sua marca e as suas ferramentas:
+
+| Conta | Para quê | Pasta | Skills |
+|---|---|---|---|
+| **@cee_webstore** | Loja: produtos, afiliados, Reels, Stories, carrosséis, vitrine | `contas/cee_webstore/` | `/pesquisar-produtos`, `/semana-conteudo`, `/novo-post-produto` |
+| **@cloviseduardo** | Serviço de tráfego pago do Clóvis: Raio-X, conteúdo de autoridade, site | `contas/cloviseduardo/` | `/raiox-automatico` (+ `/carrossel` e `/edicao-motion`, globais) |
+
+**Como não bagunçar:** abra **uma conversa por conta** e comece pelo `CLAUDE.md` da conta. Todo script exige `--conta @nome`
+(sem isso ele recusa). No painel, troque de conta no menu lateral. O resto deste guia descreve primeiro a CEE Store; a parte do
+Clóvis está na linha do `/raiox-automatico` e em `contas/cloviseduardo/CLAUDE.md`.
 
 ## 1. O que existe hoje (resumo)
 
@@ -25,7 +38,7 @@ Funciona sozinho, 24 horas por dia:
 | `/pesquisar-produtos` | Acha e ranqueia produtos para divulgar como afiliado (Amazon, Mercado Livre, Shopee): comissão, demanda, nota, gancho | Quando não sabe o que postar |
 | `/semana-conteudo` | Produz **a semana inteira**: Reels narrados, Stories, carrosséis, combos, vitrine. Você aprova uma vez e tudo é publicado sozinho nos horários | **Rotina principal**, 1 vez por semana |
 | `/novo-post-produto` | Faz **um carrossel avulso** e publica na hora, com a regra de DM | Produto que surgiu no meio da semana / post urgente |
-| `/raiox-automatico` | **Só da conta @cloviseduardo.** Quem comenta/envia RAIOX responde 3 perguntas no Direct; a cada 15 min (tarefa agendada, com o PC ligado) o Claude lê o perfil e o site, gera o PDF na marca nova e entrega no Direct, sem revisão. O que não foi possível ler aparece no PDF e na mensagem. Falhas viram alerta no celular | Automático. Regra criada por post: `node raiox/criar-regras.mjs @cloviseduardo <id_do_post>` |
+| `/raiox-automatico` | **Só da conta @cloviseduardo.** Quem comenta/envia RAIOX toca no botão e responde 4 perguntas no Direct (@, site, anuncia, objetivo); a cada 15 min (tarefa agendada, com o PC ligado) o Claude lê o perfil e o site, gera o PDF e 5 páginas em imagem na marca nova e entrega no Direct, sem revisão. O que não foi possível ler aparece no PDF e na mensagem. Falhas viram alerta no celular | Automático. Regra criada por post: `node contas/cloviseduardo/raiox/criar-regras.mjs @cloviseduardo <id_do_post>` |
 
 ## 2. Ordem lógica (a rotina)
 
