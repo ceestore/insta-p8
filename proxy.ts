@@ -12,6 +12,8 @@ function isPublic(request: NextRequest): boolean {
   if (pathname.startsWith("/r/")) return true
   // Public "link da bio" page and its product images.
   if (pathname === "/links" || pathname.startsWith("/api/vitrine/img/")) return true
+  // Teleprompter for recording videos on the phone: a static page with scripts only, no data or secrets.
+  if (pathname === "/teleprompter.html") return true
   // Automation agents (Claude skill); the routes check AUTOMATION_API_KEY themselves.
   if (pathname.startsWith("/api/agent/")) return true
   // Vercel Cron; the route checks CRON_SECRET itself.
