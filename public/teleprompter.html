@@ -79,7 +79,7 @@
     <textarea id="texto-area" spellcheck="false"></textarea>
   </div>
   <div class="linha">
-    <div class="campo"><label for="vel">Velocidade</label><input id="vel" type="range" min="1" max="10" step="1"><span class="valor" id="vel-v"></span></div>
+    <div class="campo"><label for="vel">Velocidade</label><input id="vel" type="range" min="1" max="15" step="1"><span class="valor" id="vel-v"></span></div>
     <div class="campo"><label for="tam">Letra</label><input id="tam" type="range" min="22" max="64" step="2"><span class="valor" id="tam-v"></span></div>
   </div>
   <div class="aviso" id="aviso-camera" hidden></div>
@@ -207,7 +207,7 @@ Manda esse vídeo para quem tem loja.` },
   }
   els.roteiro.addEventListener("change", function () { prefs.roteiro = els.roteiro.value; guardar(); carregarTexto(); });
   els.area.addEventListener("input", function () { prefs.editados[prefs.roteiro] = els.area.value; guardar(); });
-  function rotulosVel() { els.velV.textContent = "Nível " + prefs.vel + " de 10"; els.tamV.textContent = prefs.tam + " px"; }
+  function rotulosVel() { els.velV.textContent = "Nível " + prefs.vel + " de 15"; els.tamV.textContent = prefs.tam + " px"; }
   els.vel.value = prefs.vel; els.tam.value = prefs.tam;
   els.vel.addEventListener("input", function () { prefs.vel = +els.vel.value; rotulosVel(); guardar(); });
   els.tam.addEventListener("input", function () { prefs.tam = +els.tam.value; rotulosVel(); guardar(); });
@@ -383,7 +383,7 @@ Manda esse vídeo para quem tem loja.` },
 
   els.gravar.addEventListener("click", aoTocarGravar);
   $("mais-lento").addEventListener("click", function () { prefs.vel = Math.max(1, prefs.vel - 1); els.vel.value = prefs.vel; rotulosVel(); guardar(); });
-  $("mais-rapido").addEventListener("click", function () { prefs.vel = Math.min(10, prefs.vel + 1); els.vel.value = prefs.vel; rotulosVel(); guardar(); });
+  $("mais-rapido").addEventListener("click", function () { prefs.vel = Math.min(15, prefs.vel + 1); els.vel.value = prefs.vel; rotulosVel(); guardar(); });
   $("virar").addEventListener("click", async function () {
     if (gravador || semCamera) return;
     frontal = !frontal;
