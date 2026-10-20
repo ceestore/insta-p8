@@ -21,12 +21,13 @@
   .sub { color: var(--apoio); font-size: 14px; margin: 0; }
   label { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ouro); }
   select, textarea { width: 100%; background: var(--verde-2); color: var(--creme); border: 1.5px solid var(--linha); border-radius: 12px; padding: 12px; font: inherit; font-size: 16px; }
-  textarea { min-height: 34vh; flex: 1; resize: none; line-height: 1.45; }
+  textarea { flex: none; height: 30vh; min-height: 150px; max-height: 260px; resize: vertical; line-height: 1.45; }
   .linha { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .campo { display: flex; flex-direction: column; gap: 6px; }
   input[type=range] { width: 100%; accent-color: var(--acento); }
   .valor { color: var(--apoio); font-size: 13px; }
   .botoes { display: flex; gap: 10px; flex-wrap: wrap; }
+  #preparo .botoes.fixo { position: sticky; bottom: 0; margin-top: auto; padding: 10px 0 2px; background: linear-gradient(rgba(14,42,34,0), var(--verde) 28%); }
   .btn { flex: 1; min-width: 140px; border: 0; border-radius: 999px; padding: 15px 20px; font-weight: 800; font-size: 17px; background: var(--acento); color: #1E1C19; }
   .btn.sec { background: transparent; border: 1.5px solid var(--linha); color: var(--creme); font-weight: 700; }
   .aviso { background: var(--verde-2); border: 1.5px solid var(--linha); border-left: 4px solid var(--acento); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--apoio); }
@@ -74,7 +75,7 @@
     <label for="roteiro">Roteiro</label>
     <select id="roteiro"></select>
   </div>
-  <div class="campo" style="flex:1;min-height:0">
+  <div class="campo">
     <label for="texto-area">Texto (pode editar)</label>
     <textarea id="texto-area" spellcheck="false"></textarea>
   </div>
@@ -85,14 +86,14 @@
   <div class="campo">
     <label for="enq">Enquadramento</label>
     <select id="enq">
-      <option value="aberto">Aberto: mostra mais da cena (recomendado)</option>
-      <option value="vertical">Vertical 9:16: mais perto</option>
+      <option value="aberto">Aberto (mostra mais da cena)</option>
+      <option value="vertical">Vertical 9:16 (mais perto)</option>
     </select>
     <span class="valor">No modo aberto, as linhas tracejadas mostram a área que vai para o Reel. Fique dentro delas.</span>
   </div>
   <div class="aviso" id="aviso-camera" hidden></div>
   <div class="aviso"><b>Dica:</b> segure o celular na vertical, na altura dos olhos, com luz de frente. Antes de gravar, faça um ensaio para acertar a velocidade. Ao terminar o texto, espere 2 segundos antes de parar.</div>
-  <div class="botoes">
+  <div class="botoes fixo">
     <button class="btn" id="abrir">Abrir câmera</button>
     <button class="btn sec" id="ensaiar">Só ensaiar</button>
   </div>
