@@ -35,7 +35,7 @@
 
   /* ---------- gravação ---------- */
   #palco { background: #000; flex-direction: column; }
-  #cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+  #cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
   #cam.espelho { transform: scaleX(-1); }
   #semcam { position: absolute; inset: 0; background: linear-gradient(160deg, #12352B, #0E2A22); }
   #janela { position: absolute; left: 0; right: 0; top: 0; height: 56%; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
@@ -82,6 +82,14 @@
     <div class="campo"><label for="vel">Velocidade</label><input id="vel" type="range" min="1" max="15" step="1"><span class="valor" id="vel-v"></span></div>
     <div class="campo"><label for="tam">Letra</label><input id="tam" type="range" min="22" max="64" step="2"><span class="valor" id="tam-v"></span></div>
   </div>
+  <div class="campo">
+    <label for="enq">Enquadramento</label>
+    <select id="enq">
+      <option value="aberto">Aberto: mostra mais da cena (recomendado)</option>
+      <option value="vertical">Vertical 9:16: mais perto</option>
+    </select>
+    <span class="valor">No modo aberto, as linhas tracejadas mostram a área que vai para o Reel. Fique dentro delas.</span>
+  </div>
   <div class="aviso" id="aviso-camera" hidden></div>
   <div class="aviso"><b>Dica:</b> segure o celular na vertical, na altura dos olhos, com luz de frente. Antes de gravar, faça um ensaio para acertar a velocidade. Ao terminar o texto, espere 2 segundos antes de parar.</div>
   <div class="botoes">
@@ -94,6 +102,7 @@
 <section id="palco" class="tela">
   <div id="semcam"></div>
   <video id="cam" playsinline muted autoplay></video>
+  <div id="reel916"><span>Área do Reel</span></div>
   <div id="janela"><div id="texto"></div><div id="guia"></div></div>
   <div id="etiqueta" hidden><i></i><span id="tempo">00:00</span></div>
   <div id="fim">Fim do texto. Espere 2 segundos e toque em parar.</div>
@@ -194,7 +203,7 @@ Manda esse vídeo para quem tem loja.` },
     gravar: $("gravar"), rev: $("rev"), nomeArq: $("nome-arquivo") };
 
   // ---------- preferências (guardadas só neste aparelho) ----------
-  var prefs = { vel: 5, tam: 40, roteiro: "26-10", editados: {} };
+  var prefs = { vel: 5, tam: 40, roteiro: "26-10", enq: "aberto", editados: {} };
   try { var salvo = JSON.parse(localStorage.getItem("teleprompter-prefs") || "null"); if (salvo) Object.assign(prefs, salvo); } catch (e) {}
   function guardar() { try { localStorage.setItem("teleprompter-prefs", JSON.stringify(prefs)); } catch (e) {} }
 
@@ -209,6 +218,7 @@ Manda esse vídeo para quem tem loja.` },
   els.area.addEventListener("input", function () { prefs.editados[prefs.roteiro] = els.area.value; guardar(); });
   function rotulosVel() { els.velV.textContent = "Nível " + prefs.vel + " de 15"; els.tamV.textContent = prefs.tam + " px"; }
   els.vel.value = prefs.vel; els.tam.value = prefs.tam;
+  $("enq").value = prefs.enq; $("enq").addEventListener("change", function () { prefs.enq = $("enq").value; guardar(); });
   els.vel.addEventListener("input", function () { prefs.vel = +els.vel.value; rotulosVel(); guardar(); });
   els.tam.addEventListener("input", function () { prefs.tam = +els.tam.value; rotulosVel(); guardar(); });
   carregarTexto(); rotulosVel();
@@ -281,6 +291,19 @@ Manda esse vídeo para quem tem loja.` },
     for (var i = 0; i < cands.length; i++) { if (MediaRecorder.isTypeSupported(cands[i])) return cands[i]; }
     return "";
   }
+  // área do quadro que vira Reel (9:16 ao centro), quando a gravação é mais aberta que isso
+  function retanguloReel(W, H, vw, vh) {
+    var esc = Math.min(W / vw, H / vh), dw = vw * esc, dh = vh * esc, cw = dh * 9 / 16;
+    if (cw >= dw - 2) return null;
+    return { left: (W - cw) / 2, top: (H - dh) / 2, width: cw, height: dh };
+  }
+  function atualizarGuia() {
+    var g = $("reel916");
+    var r = (!semCamera && prefs.enq === "aberto" && els.cam.videoWidth) ? retanguloReel(els.palco.clientWidth, els.palco.clientHeight, els.cam.videoWidth, els.cam.videoHeight) : null;
+    if (!r) { g.style.display = "none"; return; }
+    g.style.display = "block"; g.style.left = r.left + "px"; g.style.top = r.top + "px"; g.style.width = r.width + "px"; g.style.height = r.height + "px";
+  }
+  els.cam.addEventListener("loadedmetadata", atualizarGuia);
   function mostrarAviso(txt) { els.aviso.hidden = !txt; els.aviso.innerHTML = txt || ""; }
 
   async function abrirCamera() {
@@ -289,13 +312,14 @@ Manda esse vídeo para quem tem loja.` },
       throw new Error("Esta página precisa abrir por um endereço seguro (https) para usar a câmera.");
     }
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: frontal ? "user" : "environment", width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30 } },
+      video: { facingMode: frontal ? "user" : "environment", width: { ideal: 1080 }, height: { ideal: prefs.enq === "vertical" ? 1920 : 1440 }, frameRate: { ideal: 30 } },
       audio: { echoCancellation: true, noiseSuppression: true }
     });
     els.cam.srcObject = stream;
     els.cam.classList.toggle("espelho", frontal);
     els.cam.style.display = "block"; els.semcam.style.display = "none";
     try { await els.cam.play(); } catch (e) {}
+    atualizarGuia();
   }
 
   async function entrarNoPalco(comCamera) {
@@ -312,7 +336,7 @@ Manda esse vídeo para quem tem loja.` },
       }
     } else {
       if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
-      els.cam.style.display = "none"; els.semcam.style.display = "block";
+      els.cam.style.display = "none"; els.semcam.style.display = "block"; atualizarGuia();
     }
     mostrar("palco");
     montarTexto(); iniciarRolagem(0); pausado = true; marcarPausa();
@@ -416,7 +440,7 @@ Manda esse vídeo para quem tem loja.` },
   }
   $("baixar").addEventListener("click", baixar);
 
-  window.addEventListener("resize", function () { if (els.palco.classList.contains("ativa")) { var o = off; montarTexto(); off = o; desenhar(); } });
+  window.addEventListener("resize", function () { if (els.palco.classList.contains("ativa")) { var o = off; montarTexto(); off = o; desenhar(); atualizarGuia(); } });
   if (!window.isSecureContext) { mostrarAviso("<b>Atenção:</b> a câmera só funciona se esta página abrir por https (ou em localhost)."); }
 })();
 </script>
