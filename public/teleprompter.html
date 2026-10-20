@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0E2A22">
+<link rel="manifest" href="/teleprompter.webmanifest">
+<link rel="icon" type="image/png" href="/teleprompter-icon-192.png">
+<link rel="apple-touch-icon" href="/teleprompter-icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Teleprompter">
 <title>Teleprompter</title>
 <style>
   :root { --verde: #0E2A22; --verde-2: #12352B; --linha: #2D5547; --creme: #F5EFE4; --apoio: #C9C1B2; --ouro: #C9A45C; --acento: #E3876A; --rec: #D64533; }
@@ -49,6 +55,7 @@
   #guia { position: absolute; left: 10px; top: var(--guia, 24%); width: 12px; height: 12px; border-radius: 50%; background: var(--acento); opacity: .9; transform: translateY(-50%); pointer-events: none; }
   #etiqueta { position: absolute; right: max(12px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top)); z-index: 5; display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,.55); border-radius: 999px; padding: 6px 14px; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
   #etiqueta i { width: 10px; height: 10px; border-radius: 50%; background: var(--rec); display: inline-block; }
+  #resolucao { position: absolute; left: 12px; bottom: 104px; z-index: 4; font-size: 11px; color: rgba(255,255,255,.65); text-shadow: 0 1px 2px #000; pointer-events: none; }
   #contagem { position: absolute; inset: 0; z-index: 6; display: none; align-items: center; justify-content: center; font-size: 160px; font-weight: 800; color: var(--creme); background: rgba(10,33,27,.55); }
   #fim { position: absolute; left: 16px; right: 16px; top: 38%; z-index: 4; background: rgba(10,33,27,.92); border: 1.5px solid var(--acento); border-radius: 14px; padding: 14px; text-align: center; font-weight: 700; display: none; }
   #barra { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; align-items: center; justify-content: space-around; padding: 14px 12px max(18px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, rgba(0,0,0,.55)); }
@@ -105,6 +112,7 @@
   <video id="cam" playsinline muted autoplay></video>
   <div id="reel916"><span>Área do Reel</span></div>
   <div id="janela"><div id="texto"></div><div id="guia"></div></div>
+  <div id="resolucao"></div>
   <div id="etiqueta" hidden><i></i><span id="tempo">00:00</span></div>
   <div id="fim">Fim do texto. Espere 2 segundos e toque em parar.</div>
   <div id="contagem"></div>
@@ -307,21 +315,45 @@ Manda esse vídeo para quem tem loja.` },
   els.cam.addEventListener("loadedmetadata", atualizarGuia);
   function mostrarAviso(txt) { els.aviso.hidden = !txt; els.aviso.innerHTML = txt || ""; }
 
+  // Medidas na orientacao do sensor (deitado): o celular entrega o quadro em pe, sem cortar.
+  // Vertical 9:16 = 1920x1080 (16:9 deitado). Aberto 3:4 = 1440x1080 (4:3 deitado).
+  function tentativasDeCamera() {
+    var lado = frontal ? "user" : "environment";
+    var medidas = prefs.enq === "vertical" ? { width: { ideal: 1920 }, height: { ideal: 1080 } } : { width: { ideal: 1440 }, height: { ideal: 1080 } };
+    var audio = { echoCancellation: true, noiseSuppression: true };
+    return [
+      { video: Object.assign({ facingMode: lado, frameRate: { ideal: 30 } }, medidas), audio: audio },
+      { video: { facingMode: lado }, audio: audio },
+      { video: true, audio: true }
+    ];
+  }
   async function abrirCamera() {
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
       throw new Error("Esta página precisa abrir por um endereço seguro (https) para usar a câmera.");
     }
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: frontal ? "user" : "environment", width: { ideal: 1080 }, height: { ideal: prefs.enq === "vertical" ? 1920 : 1440 }, frameRate: { ideal: 30 } },
-      audio: { echoCancellation: true, noiseSuppression: true }
-    });
+    var tentativas = tentativasDeCamera(), ultimoErro = null;
+    for (var i = 0; i < tentativas.length && !stream; i++) {
+      try { stream = await navigator.mediaDevices.getUserMedia(tentativas[i]); }
+      catch (e) {
+        ultimoErro = e;
+        if (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) throw e; // bloqueio de permissão: não adianta tentar de novo
+      }
+    }
+    if (!stream) throw ultimoErro || new Error("Não foi possível abrir a câmera.");
     els.cam.srcObject = stream;
     els.cam.classList.toggle("espelho", frontal);
     els.cam.style.display = "block"; els.semcam.style.display = "none";
     try { await els.cam.play(); } catch (e) {}
+    mostrarResolucao();
     atualizarGuia();
   }
+  function mostrarResolucao() {
+    var t = stream && stream.getVideoTracks()[0], st = t && t.getSettings ? t.getSettings() : {};
+    var w = els.cam.videoWidth || st.width, h = els.cam.videoHeight || st.height;
+    $("resolucao").textContent = w && h ? "Câmera " + w + "×" + h : "";
+  }
+  els.cam.addEventListener("loadedmetadata", mostrarResolucao);
 
   async function entrarNoPalco(comCamera) {
     mostrarAviso("");
@@ -332,7 +364,7 @@ Manda esse vídeo para quem tem loja.` },
         var msg = (e && e.name === "NotAllowedError") ? "A câmera ou o microfone foi bloqueado. Libere o acesso nas permissões do navegador e tente de novo." :
                   (e && e.name === "NotFoundError") ? "Não encontrei câmera ou microfone neste aparelho." :
                   (e && e.message) ? e.message : "Não foi possível abrir a câmera.";
-        mostrarAviso("<b>Câmera indisponível.</b> " + msg + " Você ainda pode usar &quot;Só ensaiar&quot;.");
+        mostrarAviso("<b>Câmera indisponível.</b> " + msg + " <span style=\"opacity:.7\">(código: " + ((e && e.name) || "erro") + ")</span> Você ainda pode usar &quot;Só ensaiar&quot;.");
         return;
       }
     } else {
@@ -441,6 +473,7 @@ Manda esse vídeo para quem tem loja.` },
   }
   $("baixar").addEventListener("click", baixar);
 
+  if ("serviceWorker" in navigator) { navigator.serviceWorker.register("/teleprompter-sw.js", { scope: "/teleprompter.html" }).catch(function () {}); }
   window.addEventListener("resize", function () { if (els.palco.classList.contains("ativa")) { var o = off; montarTexto(); off = o; desenhar(); atualizarGuia(); } });
   if (!window.isSecureContext) { mostrarAviso("<b>Atenção:</b> a câmera só funciona se esta página abrir por https (ou em localhost)."); }
 })();
