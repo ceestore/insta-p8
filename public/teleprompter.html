@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0E2A22">
+<link rel="manifest" href="/teleprompter.webmanifest">
+<link rel="icon" type="image/png" href="/teleprompter-icon-192.png">
+<link rel="apple-touch-icon" href="/teleprompter-icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Teleprompter">
+<title>Teleprompter</title>
+<style>
+  :root { --verde: #0E2A22; --verde-2: #12352B; --linha: #2D5547; --creme: #F5EFE4; --apoio: #C9C1B2; --ouro: #C9A45C; --acento: #E3876A; --rec: #D64533; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--verde); color: var(--creme); font-family: "Segoe UI", system-ui, -apple-system, sans-serif; overflow: hidden; }
+  .tela { position: fixed; inset: 0; display: none; }
+  .tela.ativa { display: flex; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+  /* ---------- preparo ---------- */
+  #preparo { flex-direction: column; padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); gap: 12px; overflow-y: auto; }
+  h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; font-size: 28px; margin: 4px 0 0; }
+  .sub { color: var(--apoio); font-size: 14px; margin: 0; }
+  label { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ouro); }
+  select, textarea { width: 100%; background: var(--verde-2); color: var(--creme); border: 1.5px solid var(--linha); border-radius: 12px; padding: 12px; font: inherit; font-size: 16px; }
+  textarea { flex: none; height: 30vh; min-height: 150px; max-height: 260px; resize: vertical; line-height: 1.45; }
+  .linha { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .campo { display: flex; flex-direction: column; gap: 6px; }
+  input[type=range] { width: 100%; accent-color: var(--acento); }
+  .valor { color: var(--apoio); font-size: 13px; }
+  .botoes { display: flex; gap: 10px; flex-wrap: wrap; }
+  #preparo .botoes.fixo { position: sticky; bottom: 0; margin-top: auto; padding: 10px 0 2px; background: linear-gradient(rgba(14,42,34,0), var(--verde) 28%); }
+  .btn { flex: 1; min-width: 140px; border: 0; border-radius: 999px; padding: 15px 20px; font-weight: 800; font-size: 17px; background: var(--acento); color: #1E1C19; }
+  a.btn { display: flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; }
+  .btn.sec { background: transparent; border: 1.5px solid var(--linha); color: var(--creme); font-weight: 700; }
+  .aviso { background: var(--verde-2); border: 1.5px solid var(--linha); border-left: 4px solid var(--acento); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--apoio); }
+  .aviso b { color: var(--creme); }
+  [hidden] { display: none !important; }
+
+  /* ---------- gravação ---------- */
+  #palco { background: #000; flex-direction: column; }
+  #cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+  #cam.espelho { transform: scaleX(-1); }
+  #semcam { position: absolute; inset: 0; background: linear-gradient(160deg, #12352B, #0E2A22); }
+  #janela { position: absolute; left: 0; right: 0; top: 0; height: 56%; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+    background: linear-gradient(rgba(10,33,27,.9), rgba(10,33,27,.82) 82%, rgba(10,33,27,0));
+    -webkit-mask-image: linear-gradient(#000 0 82%, transparent); mask-image: linear-gradient(#000 0 82%, transparent); }
+  #texto { position: absolute; left: 0; right: 0; top: 0; padding: 0 22px; text-align: center; font-weight: 700; line-height: 1.32; will-change: transform; }
+  #texto p { margin: 0 0 .15em; }
+  #texto p.espaco { height: .7em; }
+  #texto p.marca { font-size: .55em; font-weight: 600; color: var(--ouro); letter-spacing: .08em; text-transform: uppercase; margin: .4em 0; }
+  #guia { position: absolute; left: 10px; top: var(--guia, 24%); width: 12px; height: 12px; border-radius: 50%; background: var(--acento); opacity: .9; transform: translateY(-50%); pointer-events: none; }
+  #etiqueta { position: absolute; right: max(12px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top)); z-index: 5; display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,.55); border-radius: 999px; padding: 6px 14px; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #etiqueta i { width: 10px; height: 10px; border-radius: 50%; background: var(--rec); display: inline-block; }
+  #resolucao { position: absolute; left: 12px; bottom: 104px; z-index: 4; font-size: 11px; color: rgba(255,255,255,.65); text-shadow: 0 1px 2px #000; pointer-events: none; }
+  #contagem { position: absolute; inset: 0; z-index: 6; display: none; align-items: center; justify-content: center; font-size: 160px; font-weight: 800; color: var(--creme); background: rgba(10,33,27,.55); }
+  #fim { position: absolute; left: 16px; right: 16px; top: 38%; z-index: 4; background: rgba(10,33,27,.92); border: 1.5px solid var(--acento); border-radius: 14px; padding: 14px; text-align: center; font-weight: 700; display: none; }
+  #barra { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; align-items: center; justify-content: space-around; padding: 14px 12px max(18px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, rgba(0,0,0,.55)); }
+  .mini { width: 52px; height: 52px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.5); background: rgba(0,0,0,.45); font-size: 22px; font-weight: 800; display: grid; place-items: center; }
+  .mini small { display: block; font-size: 10px; font-weight: 600; line-height: 1; margin-top: -4px; }
+  #gravar { width: 78px; height: 78px; border-radius: 50%; border: 5px solid #fff; background: transparent; position: relative; }
+  #gravar::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--rec); transition: inset .15s, border-radius .15s; }
+  #gravar.gravando::after { inset: 20px; border-radius: 8px; }
+
+  /* ---------- revisão ---------- */
+  #revisao { flex-direction: column; padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); gap: 12px; overflow-y: auto; }
+  #revisao video { width: 100%; max-height: 62vh; background: #000; border-radius: 14px; object-fit: contain; }
+  .nome { font-size: 14px; color: var(--apoio); word-break: break-all; }
+</style>
+</head>
+<body>
+
+<!-- PREPARO -->
+<section id="preparo" class="tela ativa">
+  <h1>Teleprompter</h1>
+  <p class="sub">Escolha o roteiro, abra a câmera e grave lendo o texto que rola na tela.</p>
+
+  <div class="campo">
+    <label for="roteiro">Roteiro</label>
+    <select id="roteiro"></select>
+  </div>
+  <div class="campo">
+    <label for="texto-area">Texto (pode editar)</label>
+    <textarea id="texto-area" spellcheck="false"></textarea>
+  </div>
+  <div class="linha">
+    <div class="campo"><label for="vel">Velocidade</label><input id="vel" type="range" min="1" max="15" step="1"><span class="valor" id="vel-v"></span></div>
+    <div class="campo"><label for="tam">Letra</label><input id="tam" type="range" min="22" max="64" step="2"><span class="valor" id="tam-v"></span></div>
+  </div>
+  <div class="campo">
+    <label for="enq">Enquadramento</label>
+    <select id="enq">
+      <option value="aberto">Aberto (mostra mais da cena)</option>
+      <option value="vertical">Vertical 9:16 (mais perto)</option>
+    </select>
+    <span class="valor">No modo aberto, as linhas tracejadas mostram a área que vai para o Reel. Fique dentro delas.</span>
+  </div>
+  <div class="aviso" id="recuperar-box" hidden><b>Há uma gravação guardada neste aparelho:</b> <span id="rec-info"></span><button class="btn sec" id="recuperar" style="margin-top:8px;width:100%">Abrir gravação guardada</button></div>
+  <div class="aviso" id="aviso-camera" hidden></div>
+  <div class="aviso"><b>Dica:</b> segure o celular na vertical, na altura dos olhos, com luz de frente. Antes de gravar, faça um ensaio para acertar a velocidade. Ao terminar o texto, espere 2 segundos antes de parar.</div>
+  <div class="sub" id="versao" style="text-align:center;opacity:.65;font-size:12px">Versão 21/10 · salvar confiável e gravação guardada</div>
+  <div class="botoes fixo">
+    <button class="btn" id="abrir">Abrir câmera</button>
+    <button class="btn sec" id="ensaiar">Só ensaiar</button>
+  </div>
+</section>
+
+<!-- GRAVAÇÃO -->
+<section id="palco" class="tela">
+  <div id="semcam"></div>
+  <video id="cam" playsinline muted autoplay></video>
+  <div id="reel916"><span>Área do Reel</span></div>
+  <div id="janela"><div id="texto"></div><div id="guia"></div></div>
+  <div id="resolucao"></div>
+  <div id="etiqueta" hidden><i></i><span id="tempo">00:00</span></div>
+  <div id="fim">Fim do texto. Espere 2 segundos e toque em parar.</div>
+  <div id="contagem"></div>
+  <div id="barra">
+    <button class="mini" id="voltar" aria-label="Voltar para o roteiro">&#8592;</button>
+    <button class="mini" id="mais-lento" aria-label="Mais lento">&minus;<small>lento</small></button>
+    <button id="gravar" aria-label="Gravar"></button>
+    <button class="mini" id="mais-rapido" aria-label="Mais rápido">+<small>rápido</small></button>
+    <button class="mini" id="virar" aria-label="Virar a câmera">&#8635;</button>
+  </div>
+</section>
+
+<!-- REVISÃO -->
+<section id="revisao" class="tela">
+  <h1>Gravação pronta</h1>
+  <video id="rev" controls playsinline></video>
+  <div class="nome" id="nome-arquivo"></div>
+  <div class="aviso" id="alerta-vazio" hidden></div>
+  <div class="botoes">
+    <a class="btn" id="baixar" href="#" download="video.mp4">Baixar arquivo</a>
+    <button class="btn sec" id="salvar">Compartilhar (Drive, WhatsApp...)</button>
+  </div>
+  <div class="aviso" id="status-salvar" hidden></div>
+  <div class="botoes">
+    <button class="btn sec" id="regravar">Gravar de novo</button>
+    <button class="btn sec" id="novo">Voltar ao roteiro</button>
+  </div>
+  <div class="aviso">Esta gravação fica guardada neste aparelho até a próxima. Se fechar a página, ela volta pelo botão &quot;Abrir gravação guardada&quot; na tela do roteiro. Depois de salvar, me envie o arquivo com este nome.</div>
+</section>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- roteiros (uma frase por linha; linhas entre parênteses viram marcações) ----------
+  var ROTEIROS = [
+    { id: "26-10", titulo: "26/10 · Turbinei e não apareceu nada", texto:
+`Turbinei um post há 24 horas e não apareceu nada.
+(pausa)
+Essa é a pergunta que eu mais recebo.
+
+Primeiro, abre o post e toca em "Ver insights".
+Se estiver "Em análise", o Instagram ainda não liberou.
+Se estiver "Recusado", ele mostra o motivo.
+(pausa)
+Quase sempre é texto ou imagem que quebra alguma regra.
+
+Agora, se está ativo e mesmo assim não chegou ninguém,
+o problema é outro.
+(pausa)
+Você deixou o público no automático,
+ou mandou para o Brasil inteiro.
+
+Para negócio local, escolha o público personalizado,
+a sua cidade
+e um raio pequeno.
+
+E troca o objetivo de "mais visitas ao perfil"
+para "mais mensagens".
+(pausa)
+Visita no perfil não pergunta o preço.
+
+Salva esse vídeo para a próxima vez que você turbinar.` },
+    { id: "28-10", titulo: "28/10 · Anuncie só para quem mora perto", texto:
+`Se você tem loja de bairro,
+não precisa aparecer para o Brasil inteiro.
+(pausa)
+Vou te mostrar onde clica
+para anunciar só para quem mora perto.
+
+No Gerenciador de Anúncios,
+cria a campanha e entra no conjunto de anúncios.
+(pausa)
+Em localização, apaga "Brasil".
+
+Digita o endereço da sua loja
+e coloca um raio pequeno, de poucos quilômetros.
+(pausa)
+Em idade, deixa aberto.
+Quem decide é quem mora perto,
+não a idade que você imagina.
+
+Orçamento: começa com R$ 20 por dia
+e deixa rodar sete dias sem mexer.
+(pausa)
+No fim da semana, olha um número só:
+quanto custou cada conversa.
+(pausa)
+É esse número que diz se vale continuar.
+
+Manda esse vídeo para quem tem loja.` },
+    { id: "livre", titulo: "Escrever ou colar outro texto", texto: "" }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = { preparo: $("preparo"), palco: $("palco"), revisao: $("revisao"), roteiro: $("roteiro"), area: $("texto-area"),
+    vel: $("vel"), velV: $("vel-v"), tam: $("tam"), tamV: $("tam-v"), aviso: $("aviso-camera"), cam: $("cam"), semcam: $("semcam"),
+    janela: $("janela"), texto: $("texto"), etiqueta: $("etiqueta"), tempo: $("tempo"), fim: $("fim"), contagem: $("contagem"),
+    gravar: $("gravar"), rev: $("rev"), nomeArq: $("nome-arquivo") };
+
+  // ---------- preferências (guardadas só neste aparelho) ----------
+  var prefs = { vel: 5, tam: 40, roteiro: "26-10", enq: "aberto", editados: {} };
+  try { var salvo = JSON.parse(localStorage.getItem("teleprompter-prefs") || "null"); if (salvo) Object.assign(prefs, salvo); } catch (e) {}
+  function guardar() { try { localStorage.setItem("teleprompter-prefs", JSON.stringify(prefs)); } catch (e) {} }
+
+  ROTEIROS.forEach(function (r) { var o = document.createElement("option"); o.value = r.id; o.textContent = r.titulo; els.roteiro.appendChild(o); });
+  function roteiroAtual() { return ROTEIROS.filter(function (r) { return r.id === prefs.roteiro; })[0] || ROTEIROS[0]; }
+  function carregarTexto() {
+    var r = roteiroAtual();
+    els.roteiro.value = r.id;
+    els.area.value = prefs.editados[r.id] != null ? prefs.editados[r.id] : r.texto;
+  }
+  els.roteiro.addEventListener("change", function () { prefs.roteiro = els.roteiro.value; guardar(); carregarTexto(); });
+  els.area.addEventListener("input", function () { prefs.editados[prefs.roteiro] = els.area.value; guardar(); });
+  function rotulosVel() { els.velV.textContent = "Nível " + prefs.vel + " de 15"; els.tamV.textContent = prefs.tam + " px"; }
+  els.vel.value = prefs.vel; els.tam.value = prefs.tam;
+  $("enq").value = prefs.enq; $("enq").addEventListener("change", function () { prefs.enq = $("enq").value; guardar(); });
+  els.vel.addEventListener("input", function () { prefs.vel = +els.vel.value; rotulosVel(); guardar(); });
+  els.tam.addEventListener("input", function () { prefs.tam = +els.tam.value; rotulosVel(); guardar(); });
+  carregarTexto(); rotulosVel();
+
+  // ---------- telas ----------
+  function mostrar(qual) {
+    ["preparo", "palco", "revisao"].forEach(function (t) { els[t].classList.toggle("ativa", t === qual); });
+  }
+
+  // ---------- texto na janela ----------
+  function montarTexto() {
+    els.texto.innerHTML = "";
+    els.texto.style.fontSize = prefs.tam + "px";
+    els.area.value.replace(/\r/g, "").split("\n").forEach(function (linha) {
+      var t = linha.trim(), p = document.createElement("p");
+      if (!t) { p.className = "espaco"; }
+      else if (/^\(.*\)$/.test(t)) { p.className = "marca"; p.textContent = t.slice(1, -1); }
+      else { p.textContent = t; }
+      els.texto.appendChild(p);
+    });
+    var h = els.janela.clientHeight;
+    els.texto.style.paddingTop = Math.round(h * 0.2) + "px";
+    els.texto.style.paddingBottom = Math.round(h * 0.9) + "px";
+    els.janela.style.setProperty("--guia", "24%");
+  }
+
+  // ---------- rolagem ----------
+  var off = 0, ultimo = 0, rodando = false, pausado = false, espera = 0, raf = 0, terminou = false;
+  function linhasPorSegundo() { return 0.15 + prefs.vel * 0.08; }
+  function pxPorSegundo() { return linhasPorSegundo() * prefs.tam * 1.32; }
+  function limite() { return els.texto.scrollHeight - els.janela.clientHeight * 0.9 - 8; }
+  function desenhar() { els.texto.style.transform = "translate3d(0," + (-off) + "px,0)"; }
+  function quadro(t) {
+    if (!rodando) return;
+    if (!ultimo) ultimo = t;
+    var dt = Math.min(0.25, (t - ultimo) / 1000); ultimo = t;
+    if (espera > 0) { espera -= dt; }
+    else if (!pausado && !terminou) {
+      off += pxPorSegundo() * dt;
+      if (off >= limite()) { off = limite(); terminou = true; els.fim.style.display = "block"; }
+      desenhar();
+    }
+    raf = requestAnimationFrame(quadro);
+  }
+  function iniciarRolagem(atraso) {
+    off = 0; desenhar(); terminou = false; pausado = false; espera = atraso || 0; ultimo = 0; rodando = true;
+    els.fim.style.display = "none";
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(quadro);
+  }
+  function pararRolagem() { rodando = false; cancelAnimationFrame(raf); }
+
+  // arrastar o texto com o dedo; um toque pausa ou retoma
+  var arrasto = null;
+  els.janela.addEventListener("pointerdown", function (e) { arrasto = { y: e.clientY, mexeu: false }; els.janela.setPointerCapture(e.pointerId); });
+  els.janela.addEventListener("pointermove", function (e) {
+    if (!arrasto) return;
+    var d = arrasto.y - e.clientY;
+    if (Math.abs(d) > 4) { arrasto.mexeu = true; off = Math.max(0, Math.min(limite(), off + d)); arrasto.y = e.clientY; terminou = off >= limite(); els.fim.style.display = terminou ? "block" : "none"; desenhar(); }
+  });
+  els.janela.addEventListener("pointerup", function () { if (arrasto && !arrasto.mexeu) { pausado = !pausado; marcarPausa(); } arrasto = null; });
+  els.janela.addEventListener("pointercancel", function () { arrasto = null; });
+
+  // ---------- câmera e gravação ----------
+  var stream = null, frontal = true, gravador = null, pedacos = [], inicioRec = 0, cronometro = 0, blobFinal = null, nomeFinal = "", mimeFinal = "";
+  var semCamera = false, wake = null;
+
+  function formatoSuportado() {
+    var cands = ["video/mp4;codecs=avc1,mp4a.40.2", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+    if (!window.MediaRecorder) return "";
+    for (var i = 0; i < cands.length; i++) { if (MediaRecorder.isTypeSupported(cands[i])) return cands[i]; }
+    return "";
+  }
+  // área do quadro que vira Reel (9:16 ao centro), quando a gravação é mais aberta que isso
+  function retanguloReel(W, H, vw, vh) {
+    var esc = Math.min(W / vw, H / vh), dw = vw * esc, dh = vh * esc, cw = dh * 9 / 16;
+    if (cw >= dw - 2) return null;
+    return { left: (W - cw) / 2, top: (H - dh) / 2, width: cw, height: dh };
+  }
+  function atualizarGuia() {
+    var g = $("reel916");
+    var r = (!semCamera && prefs.enq === "aberto" && els.cam.videoWidth) ? retanguloReel(els.palco.clientWidth, els.palco.clientHeight, els.cam.videoWidth, els.cam.videoHeight) : null;
+    if (!r) { g.style.display = "none"; return; }
+    g.style.display = "block"; g.style.left = r.left + "px"; g.style.top = r.top + "px"; g.style.width = r.width + "px"; g.style.height = r.height + "px";
+  }
+  els.cam.addEventListener("loadedmetadata", atualizarGuia);
+  function mostrarAviso(txt) { els.aviso.hidden = !txt; els.aviso.innerHTML = txt || ""; }
+
+  // Medidas na orientacao do sensor (deitado): o celular entrega o quadro em pe, sem cortar.
+  // Vertical 9:16 = 1920x1080 (16:9 deitado). Aberto 3:4 = 1440x1080 (4:3 deitado).
+  function tentativasDeCamera() {
+    var lado = frontal ? "user" : "environment";
+    var medidas = prefs.enq === "vertical" ? { width: { ideal: 1920 }, height: { ideal: 1080 } } : { width: { ideal: 1440 }, height: { ideal: 1080 } };
+    var audio = { echoCancellation: true, noiseSuppression: true };
+    return [
+      { video: Object.assign({ facingMode: lado, frameRate: { ideal: 30 } }, medidas), audio: audio },
+      { video: { facingMode: lado }, audio: audio },
+      { video: true, audio: true }
+    ];
+  }
+  async function abrirCamera() {
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
+      throw new Error("Esta página precisa abrir por um endereço seguro (https) para usar a câmera.");
+    }
+    var tentativas = tentativasDeCamera(), ultimoErro = null;
+    for (var i = 0; i < tentativas.length && !stream; i++) {
+      try { stream = await navigator.mediaDevices.getUserMedia(tentativas[i]); }
+      catch (e) {
+        ultimoErro = e;
+        if (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) throw e; // bloqueio de permissão: não adianta tentar de novo
+      }
+    }
+    if (!stream) throw ultimoErro || new Error("Não foi possível abrir a câmera.");
+    els.cam.srcObject = stream;
+    els.cam.classList.toggle("espelho", frontal);
+    els.cam.style.display = "block"; els.semcam.style.display = "none";
+    try { await els.cam.play(); } catch (e) {}
+    mostrarResolucao();
+    atualizarGuia();
+  }
+  function mostrarResolucao() {
+    var t = stream && stream.getVideoTracks()[0], st = t && t.getSettings ? t.getSettings() : {};
+    var w = els.cam.videoWidth || st.width, h = els.cam.videoHeight || st.height;
+    $("resolucao").textContent = w && h ? "Câmera " + w + "×" + h : "";
+  }
+  els.cam.addEventListener("loadedmetadata", mostrarResolucao);
+
+  async function entrarNoPalco(comCamera) {
+    mostrarAviso("");
+    semCamera = !comCamera;
+    if (comCamera) {
+      try { await abrirCamera(); }
+      catch (e) {
+        var msg = (e && e.name === "NotAllowedError") ? "A câmera ou o microfone foi bloqueado. Libere o acesso nas permissões do navegador e tente de novo." :
+                  (e && e.name === "NotFoundError") ? "Não encontrei câmera ou microfone neste aparelho." :
+                  (e && e.message) ? e.message : "Não foi possível abrir a câmera.";
+        mostrarAviso("<b>Câmera indisponível.</b> " + msg + " <span style=\"opacity:.7\">(código: " + ((e && e.name) || "erro") + ")</span> Você ainda pode usar &quot;Só ensaiar&quot;.");
+        return;
+      }
+    } else {
+      if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+      els.cam.style.display = "none"; els.semcam.style.display = "block"; atualizarGuia();
+    }
+    mostrar("palco");
+    montarTexto(); iniciarRolagem(0); pausado = true; marcarPausa();
+    els.gravar.classList.remove("gravando"); els.etiqueta.hidden = true;
+    els.gravar.setAttribute("aria-label", semCamera ? "Iniciar ensaio" : "Gravar");
+    try { if (navigator.wakeLock) wake = await navigator.wakeLock.request("screen"); } catch (e) {}
+  }
+
+  function marcarPausa() {
+    if (rodando && !gravador && !semCamera) { els.etiqueta.hidden = true; }
+    else if (gravador) { els.tempo.textContent = tempoTxt() + (pausado ? " · pausado" : ""); }
+    else if (semCamera) { els.etiqueta.hidden = !pausado; els.etiqueta.querySelector("i").style.display = "none"; els.tempo.textContent = pausado ? "Ensaio pausado" : ""; }
+  }
+  function tempoTxt() { var s = Math.floor((Date.now() - inicioRec) / 1000); return ("0" + Math.floor(s / 60)).slice(-2) + ":" + ("0" + (s % 60)).slice(-2); }
+
+  function contagemRegressiva() {
+    return new Promise(function (ok) {
+      var n = 3; els.contagem.style.display = "flex"; els.contagem.textContent = n;
+      var id = setInterval(function () { n--; if (n <= 0) { clearInterval(id); els.contagem.style.display = "none"; ok(); } else { els.contagem.textContent = n; } }, 1000);
+    });
+  }
+
+  async function aoTocarGravar() {
+    if (gravador) { pararGravacao(); return; }
+    // iniciar
+    off = 0; desenhar(); terminou = false; els.fim.style.display = "none"; pausado = true; rodando = true;
+    await contagemRegressiva();
+    if (semCamera) {
+      iniciarRolagem(1); els.gravar.classList.add("gravando"); els.gravar.onclick = null;
+      els.gravar.setAttribute("aria-label", "Parar ensaio");
+      gravador = { ensaio: true };
+      return;
+    }
+    var mime = formatoSuportado();
+    try { gravador = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 8000000 } : {}); }
+    catch (e) { gravador = null; mostrarAviso("Este navegador não consegue gravar vídeo. Tente o Chrome (Android) ou o Safari (iPhone)."); mostrar("preparo"); return; }
+    mimeFinal = gravador.mimeType || mime || "video/webm";
+    pedacos = [];
+    limparPedacos();
+    gravador.ondataavailable = function (e) { if (e.data && e.data.size) { pedacos.push(e.data); guardarPedaco(pedacos.length, e.data); } };
+    gravador.onstop = finalizarGravacao;
+    gravador.start(1000);
+    inicioRec = Date.now();
+    els.etiqueta.hidden = false; els.etiqueta.querySelector("i").style.display = "inline-block";
+    clearInterval(cronometro); cronometro = setInterval(marcarPausa, 500); marcarPausa();
+    els.gravar.classList.add("gravando"); els.gravar.setAttribute("aria-label", "Parar gravação");
+    iniciarRolagem(2); // 2 segundos de silêncio no começo
+  }
+  function pararGravacao() {
+    clearInterval(cronometro);
+    els.gravar.classList.remove("gravando");
+    if (gravador && gravador.ensaio) { gravador = null; pararRolagem(); iniciarRolagem(0); pausado = true; els.etiqueta.hidden = true; return; }
+    try { gravador.stop(); } catch (e) {}
+  }
+  // ---------- guarda a gravacao dentro do aparelho (IndexedDB) ----------
+  function abrirBanco() {
+    return new Promise(function (ok) {
+      try {
+        var r = indexedDB.open("teleprompter", 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore("ultima"); r.result.createObjectStore("pedacos"); };
+        r.onsuccess = function () { ok(r.result); };
+        r.onerror = function () { ok(null); };
+      } catch (e) { ok(null); }
+    });
+  }
+  function bancoFazer(loja, modo, fn) {
+    return abrirBanco().then(function (db) {
+      if (!db) return null;
+      return new Promise(function (ok) {
+        var tx = db.transaction(loja, modo), res = null;
+        try { res = fn(tx.objectStore(loja)); } catch (e) { ok(null); return; }
+        tx.oncomplete = function () { ok(res && res.result !== undefined ? res.result : null); db.close(); };
+        tx.onerror = tx.onabort = function () { ok(null); db.close(); };
+      });
+    });
+  }
+  function guardarPedaco(i, blob) { bancoFazer("pedacos", "readwrite", function (st) { return st.put(blob, i); }); }
+  function limparPedacos() { return bancoFazer("pedacos", "readwrite", function (st) { return st.clear(); }); }
+  function guardarUltima(blob, meta) { return bancoFazer("ultima", "readwrite", function (st) { return st.put({ blob: blob, meta: meta }, "ultima"); }); }
+  function lerUltima() { return bancoFazer("ultima", "readonly", function (st) { return st.get("ultima"); }); }
+  function lerPedacos() { return bancoFazer("pedacos", "readonly", function (st) { return st.getAll(); }); }
+
+  // ---------- revisao e salvar ----------
+  var urlDownload = "", recuperada = null;
+  function statusSalvar(html) { var el = $("status-salvar"); el.hidden = !html; el.innerHTML = html || ""; }
+  function mostrarRevisao(blob, nome) {
+    blobFinal = blob; nomeFinal = nome;
+    if (els.rev.src) URL.revokeObjectURL(els.rev.src);
+    if (urlDownload) URL.revokeObjectURL(urlDownload);
+    els.rev.src = URL.createObjectURL(blob);
+    urlDownload = URL.createObjectURL(blob);
+    var a = $("baixar"); a.href = urlDownload; a.setAttribute("download", nome);
+    els.nomeArq.textContent = "Arquivo: " + nome + " · " + (blob.size / 1048576).toFixed(1) + " MB · " + (blob.type || "vídeo");
+    var vazio = $("alerta-vazio");
+    if (blob.size < 20000) { vazio.hidden = false; vazio.innerHTML = "<b>Atenção:</b> a gravação saiu praticamente vazia (" + blob.size + " bytes). Grave de novo e espere o contador de tempo andar antes de parar."; }
+    else { vazio.hidden = true; vazio.innerHTML = ""; }
+    statusSalvar("");
+    mostrar("revisao");
+  }
+  function finalizarGravacao() {
+    pararRolagem(); gravador = null;
+    var tipo = (mimeFinal.split(";")[0]) || "video/webm";
+    var ext = tipo.indexOf("mp4") >= 0 ? "mp4" : "webm";
+    var nome = roteiroAtual().id + "." + ext;
+    var blob = new Blob(pedacos, { type: tipo });
+    els.etiqueta.hidden = true;
+    if (wake) { try { wake.release(); } catch (e) {} wake = null; }
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    guardarUltima(blob, { nome: nome, tipo: tipo, quando: Date.now() }).then(limparPedacos);
+    mostrarRevisao(blob, nome);
+  }
+  function descreverQuando(ms) { var d = new Date(ms); return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+  async function verificarGravacaoGuardada() {
+    var u = await lerUltima(), sobras = await lerPedacos();
+    var box = $("recuperar-box"); box.hidden = true;
+    if (sobras && sobras.length && !gravador) {
+      // a pagina fechou no meio de uma gravacao: junta o que foi guardado
+      var tipoS = (sobras[0] && sobras[0].type) || "video/webm";
+      var blobS = new Blob(sobras, { type: tipoS });
+      if (blobS.size < 100000) { limparPedacos(); sobras = null; }  // quase nada foi guardado (comum no MP4): nao oferece um arquivo vazio
+      else u = { blob: blobS, meta: { nome: roteiroAtual().id + (tipoS.indexOf("mp4") >= 0 ? ".mp4" : ".webm"), tipo: tipoS, quando: Date.now(), parcial: true } };
+    }
+    if (u && u.blob && u.blob.size > 0) {
+      recuperada = u;
+      $("rec-info").textContent = u.meta.nome + " · " + (u.blob.size / 1048576).toFixed(1) + " MB · " + descreverQuando(u.meta.quando) + (u.meta.parcial ? " (gravação interrompida)" : "");
+      box.hidden = false;
+    }
+  }
+  $("recuperar").addEventListener("click", function () { if (recuperada) mostrarRevisao(recuperada.blob, recuperada.meta.nome); });
+
+  els.gravar.addEventListener("click", aoTocarGravar);
+  $("mais-lento").addEventListener("click", function () { prefs.vel = Math.max(1, prefs.vel - 1); els.vel.value = prefs.vel; rotulosVel(); guardar(); });
+  $("mais-rapido").addEventListener("click", function () { prefs.vel = Math.min(15, prefs.vel + 1); els.vel.value = prefs.vel; rotulosVel(); guardar(); });
+  $("virar").addEventListener("click", async function () {
+    if (gravador || semCamera) return;
+    frontal = !frontal;
+    try { await abrirCamera(); } catch (e) { frontal = !frontal; }
+  });
+  $("voltar").addEventListener("click", function () {
+    if (gravador && !gravador.ensaio) { return; } // não sai no meio da gravação
+    gravador = null; clearInterval(cronometro); pararRolagem(); els.etiqueta.hidden = true;
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    if (wake) { try { wake.release(); } catch (e) {} wake = null; }
+    mostrar("preparo");
+  });
+
+  $("abrir").addEventListener("click", function () { entrarNoPalco(true); });
+  $("ensaiar").addEventListener("click", function () { entrarNoPalco(false); });
+  $("regravar").addEventListener("click", function () { entrarNoPalco(true); });
+  $("novo").addEventListener("click", function () { mostrar("preparo"); });
+
+  function arquivo() { return new File([blobFinal], nomeFinal, { type: blobFinal.type }); }
+  $("salvar").addEventListener("click", async function () {
+    var f;
+    try { f = arquivo(); } catch (e) { statusSalvar("Não consegui preparar o arquivo. Toque em <b>Baixar arquivo</b>."); return; }
+    if (!navigator.share) { statusSalvar("Este navegador não tem a lista de compartilhar. Toque em <b>Baixar arquivo</b>."); return; }
+    if (navigator.canShare && !navigator.canShare({ files: [f] })) { statusSalvar("Este aparelho não compartilha esse tipo de vídeo. Toque em <b>Baixar arquivo</b>."); return; }
+    try { await navigator.share({ files: [f] }); statusSalvar("Pronto. Se você escolheu o Drive ou o WhatsApp, o vídeo foi enviado."); }
+    catch (e) {
+      if (e && e.name === "AbortError") statusSalvar("Compartilhamento cancelado.");
+      else statusSalvar("Não consegui abrir a lista de compartilhar (código: " + ((e && e.name) || "erro") + "). Toque em <b>Baixar arquivo</b>.");
+    }
+  });
+  // o botao Baixar e um link de verdade: o toque do dedo e o jeito mais confiavel de baixar no celular
+  $("baixar").addEventListener("click", function () {
+    statusSalvar("Baixando <b>" + nomeFinal + "</b>. Se o navegador perguntar, toque em <b>Permitir</b>. O vídeo vai para a pasta <b>Downloads</b> (aplicativo Arquivos). Se nada aparecer em 5 segundos, use <b>Compartilhar</b>.");
+  });
+
+  verificarGravacaoGuardada();
+  window.addEventListener("resize", function () { if (els.palco.classList.contains("ativa")) { var o = off; montarTexto(); off = o; desenhar(); atualizarGuia(); } });
+  if (!window.isSecureContext) { mostrarAviso("<b>Atenção:</b> a câmera só funciona se esta página abrir por https (ou em localhost)."); }
+})();
+</script>
+</body>
+</html>
