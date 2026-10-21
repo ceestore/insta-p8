@@ -19,9 +19,13 @@ JPG com `sharp` se precisar).
 
 ## 1. Ler o produto
 
-- Use `firecrawl_scrape` no link com `formats: ["json"]` e um schema com: `title`, `brand`, `price`,
-  `bullet_points` (lista), `description`, `specs` (pares nome/valor), `rating`, `review_count`.
-- Se a página vier bloqueada (captcha/"robot check"), vazia ou incompleta, **peça ao usuário para colar o título e os
+- Leia a página com o **Crawl4AI** (leitor do projeto, grátis; **não use o FireCrawl**):
+  `py scripts/ler_pagina.py "<link>" --saida carrossel/posts/<pasta>/produto.json` (no Linux/nuvem: `python3`).
+  Do JSON, tire `title`, marca, preço, tópicos, descrição, ficha técnica, nota e nº de avaliações (estão no `markdown`;
+  `product` traz o JSON-LD quando a loja publica). Se o Crawl4AI não estiver instalado, instale (passos no topo do
+  script) ou peça ao usuário.
+- Se o script sair com `ok: false` (captcha/"robot check", vazia, erro do navegador), tente uma vez pelo Chrome do
+  usuário (Claude in Chrome: `navigate` + `get_page_text`); se não der, **peça ao usuário para colar o título e os
   tópicos do anúncio**. Não siga sem informação real.
 - **Nunca invente características.** Tudo que for afirmado nos slides, na legenda ou na DM precisa estar no anúncio
   ou ser visível nas fotos. Sem promessas de saúde/resultado, sem "o melhor do Brasil", sem preço nos slides

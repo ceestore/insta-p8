@@ -107,6 +107,14 @@ Em outro: `$env:TEST_ADMIN_PASSWORD="teste-local-123456"; node scripts/testes/ru
 Preferências → **Baixar backup (.json)**: regras, contatos, histórico, conversas, lista de arquivos e links (sem o
 token). O Supabase gratuito não oferece backup para baixar; faça isso mensalmente.
 
+## Leitor de páginas (Crawl4AI)
+
+As skills leem anúncios e sites com `scripts/ler_pagina.py` (Crawl4AI, código aberto; sem chave e sem créditos — substituiu o
+FireCrawl). Instalação: `py -m pip install -U crawl4ai` e `crawl4ai-setup`. Uso: `py scripts/ler_pagina.py <url>
+[--saida x.json] [--baixar-fotos pasta] [--max-chars N] [--cdp http://localhost:9222]`. Devolve JSON com título, descrição,
+JSON-LD de produto, fotos da galeria (Amazon `hiRes`, Mercado Livre, `og:image`) e o texto em markdown, recortado na área do
+produto em Amazon e Mercado Livre. Sai com código 2 e `ok: false` quando a página vem bloqueada ou vazia.
+
 ## Carrosséis de produto
 
 Skill do Claude Code `/novo-post-produto` (`.claude/skills/`): lê o produto, escreve os textos, gera os slides com o

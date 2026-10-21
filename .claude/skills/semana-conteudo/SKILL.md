@@ -43,7 +43,9 @@ mantém a grade padrão. Se o usuário não tiver produtos, ofereça `/pesquisar
 
 Pasta: `conteudo/semanas/<AAAA-MM-DD da segunda>/` (fora do git) com `fotos/` (copie as fotos como
 `<produto>-1.jpg`…; converta PNG/WEBP para JPG com `sharp`). Leia cada produto como no passo 1 do
-`/novo-post-produto` (firecrawl com schema; se bloquear, peça os tópicos do anúncio). Abra cada foto (Read).
+`/novo-post-produto` (Crawl4AI: `py scripts/ler_pagina.py "<link>" --saida <pasta>/produto.json`; se bloquear, Chrome
+do usuário ou peça os tópicos do anúncio). Fotos do vendedor no Mercado Livre/Shopee: o mesmo script com
+`--baixar-fotos conteudo/semanas/<semana>/fotos/<produto> --max-fotos 8` (nunca para links da Amazon). Abra cada foto (Read).
 
 ## 2. Grade padrão (conta nova, crescer alcance)
 
