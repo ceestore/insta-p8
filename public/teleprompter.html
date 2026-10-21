@@ -35,6 +35,7 @@
   .botoes { display: flex; gap: 10px; flex-wrap: wrap; }
   #preparo .botoes.fixo { position: sticky; bottom: 0; margin-top: auto; padding: 10px 0 2px; background: linear-gradient(rgba(14,42,34,0), var(--verde) 28%); }
   .btn { flex: 1; min-width: 140px; border: 0; border-radius: 999px; padding: 15px 20px; font-weight: 800; font-size: 17px; background: var(--acento); color: #1E1C19; }
+  a.btn { display: flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; }
   .btn.sec { background: transparent; border: 1.5px solid var(--linha); color: var(--creme); font-weight: 700; }
   .aviso { background: var(--verde-2); border: 1.5px solid var(--linha); border-left: 4px solid var(--acento); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--apoio); }
   .aviso b { color: var(--creme); }
@@ -98,6 +99,7 @@
     </select>
     <span class="valor">No modo aberto, as linhas tracejadas mostram a área que vai para o Reel. Fique dentro delas.</span>
   </div>
+  <div class="aviso" id="recuperar-box" hidden><b>Há uma gravação guardada neste aparelho:</b> <span id="rec-info"></span><button class="btn sec" id="recuperar" style="margin-top:8px;width:100%">Abrir gravação guardada</button></div>
   <div class="aviso" id="aviso-camera" hidden></div>
   <div class="aviso"><b>Dica:</b> segure o celular na vertical, na altura dos olhos, com luz de frente. Antes de gravar, faça um ensaio para acertar a velocidade. Ao terminar o texto, espere 2 segundos antes de parar.</div>
   <div class="botoes fixo">
@@ -130,15 +132,17 @@
   <h1>Gravação pronta</h1>
   <video id="rev" controls playsinline></video>
   <div class="nome" id="nome-arquivo"></div>
+  <div class="aviso" id="alerta-vazio" hidden></div>
   <div class="botoes">
-    <button class="btn" id="salvar">Salvar o vídeo</button>
-    <button class="btn sec" id="baixar">Baixar arquivo</button>
+    <a class="btn" id="baixar" href="#" download="video.mp4">Baixar arquivo</a>
+    <button class="btn sec" id="salvar">Compartilhar (Drive, WhatsApp...)</button>
   </div>
+  <div class="aviso" id="status-salvar" hidden></div>
   <div class="botoes">
     <button class="btn sec" id="regravar">Gravar de novo</button>
     <button class="btn sec" id="novo">Voltar ao roteiro</button>
   </div>
-  <div class="aviso">Depois de salvar, me envie o arquivo com este nome. Eu edito com legenda e cartela.</div>
+  <div class="aviso">Esta gravação fica guardada neste aparelho até a próxima. Se fechar a página, ela volta pelo botão &quot;Abrir gravação guardada&quot; na tela do roteiro. Depois de salvar, me envie o arquivo com este nome.</div>
 </section>
 
 <script>
@@ -408,7 +412,8 @@ Manda esse vídeo para quem tem loja.` },
     catch (e) { gravador = null; mostrarAviso("Este navegador não consegue gravar vídeo. Tente o Chrome (Android) ou o Safari (iPhone)."); mostrar("preparo"); return; }
     mimeFinal = gravador.mimeType || mime || "video/webm";
     pedacos = [];
-    gravador.ondataavailable = function (e) { if (e.data && e.data.size) pedacos.push(e.data); };
+    limparPedacos();
+    gravador.ondataavailable = function (e) { if (e.data && e.data.size) { pedacos.push(e.data); guardarPedaco(pedacos.length, e.data); } };
     gravador.onstop = finalizarGravacao;
     gravador.start(1000);
     inicioRec = Date.now();
@@ -423,20 +428,81 @@ Manda esse vídeo para quem tem loja.` },
     if (gravador && gravador.ensaio) { gravador = null; pararRolagem(); iniciarRolagem(0); pausado = true; els.etiqueta.hidden = true; return; }
     try { gravador.stop(); } catch (e) {}
   }
+  // ---------- guarda a gravacao dentro do aparelho (IndexedDB) ----------
+  function abrirBanco() {
+    return new Promise(function (ok) {
+      try {
+        var r = indexedDB.open("teleprompter", 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore("ultima"); r.result.createObjectStore("pedacos"); };
+        r.onsuccess = function () { ok(r.result); };
+        r.onerror = function () { ok(null); };
+      } catch (e) { ok(null); }
+    });
+  }
+  function bancoFazer(loja, modo, fn) {
+    return abrirBanco().then(function (db) {
+      if (!db) return null;
+      return new Promise(function (ok) {
+        var tx = db.transaction(loja, modo), res = null;
+        try { res = fn(tx.objectStore(loja)); } catch (e) { ok(null); return; }
+        tx.oncomplete = function () { ok(res && res.result !== undefined ? res.result : null); db.close(); };
+        tx.onerror = tx.onabort = function () { ok(null); db.close(); };
+      });
+    });
+  }
+  function guardarPedaco(i, blob) { bancoFazer("pedacos", "readwrite", function (st) { return st.put(blob, i); }); }
+  function limparPedacos() { return bancoFazer("pedacos", "readwrite", function (st) { return st.clear(); }); }
+  function guardarUltima(blob, meta) { return bancoFazer("ultima", "readwrite", function (st) { return st.put({ blob: blob, meta: meta }, "ultima"); }); }
+  function lerUltima() { return bancoFazer("ultima", "readonly", function (st) { return st.get("ultima"); }); }
+  function lerPedacos() { return bancoFazer("pedacos", "readonly", function (st) { return st.getAll(); }); }
+
+  // ---------- revisao e salvar ----------
+  var urlDownload = "", recuperada = null;
+  function statusSalvar(html) { var el = $("status-salvar"); el.hidden = !html; el.innerHTML = html || ""; }
+  function mostrarRevisao(blob, nome) {
+    blobFinal = blob; nomeFinal = nome;
+    if (els.rev.src) URL.revokeObjectURL(els.rev.src);
+    if (urlDownload) URL.revokeObjectURL(urlDownload);
+    els.rev.src = URL.createObjectURL(blob);
+    urlDownload = URL.createObjectURL(blob);
+    var a = $("baixar"); a.href = urlDownload; a.setAttribute("download", nome);
+    els.nomeArq.textContent = "Arquivo: " + nome + " · " + (blob.size / 1048576).toFixed(1) + " MB · " + (blob.type || "vídeo");
+    var vazio = $("alerta-vazio");
+    if (blob.size < 20000) { vazio.hidden = false; vazio.innerHTML = "<b>Atenção:</b> a gravação saiu praticamente vazia (" + blob.size + " bytes). Grave de novo e espere o contador de tempo andar antes de parar."; }
+    else { vazio.hidden = true; vazio.innerHTML = ""; }
+    statusSalvar("");
+    mostrar("revisao");
+  }
   function finalizarGravacao() {
     pararRolagem(); gravador = null;
     var tipo = (mimeFinal.split(";")[0]) || "video/webm";
-    blobFinal = new Blob(pedacos, { type: tipo });
     var ext = tipo.indexOf("mp4") >= 0 ? "mp4" : "webm";
-    nomeFinal = roteiroAtual().id + "." + ext;
-    if (els.rev.src) URL.revokeObjectURL(els.rev.src);
-    els.rev.src = URL.createObjectURL(blobFinal);
-    els.nomeArq.textContent = "Arquivo: " + nomeFinal + " · " + (blobFinal.size / 1048576).toFixed(1) + " MB";
+    var nome = roteiroAtual().id + "." + ext;
+    var blob = new Blob(pedacos, { type: tipo });
     els.etiqueta.hidden = true;
     if (wake) { try { wake.release(); } catch (e) {} wake = null; }
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
-    mostrar("revisao");
+    guardarUltima(blob, { nome: nome, tipo: tipo, quando: Date.now() }).then(limparPedacos);
+    mostrarRevisao(blob, nome);
   }
+  function descreverQuando(ms) { var d = new Date(ms); return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+  async function verificarGravacaoGuardada() {
+    var u = await lerUltima(), sobras = await lerPedacos();
+    var box = $("recuperar-box"); box.hidden = true;
+    if (sobras && sobras.length && !gravador) {
+      // a pagina fechou no meio de uma gravacao: junta o que foi guardado
+      var tipoS = (sobras[0] && sobras[0].type) || "video/webm";
+      var blobS = new Blob(sobras, { type: tipoS });
+      if (blobS.size < 100000) { limparPedacos(); sobras = null; }  // quase nada foi guardado (comum no MP4): nao oferece um arquivo vazio
+      else u = { blob: blobS, meta: { nome: roteiroAtual().id + (tipoS.indexOf("mp4") >= 0 ? ".mp4" : ".webm"), tipo: tipoS, quando: Date.now(), parcial: true } };
+    }
+    if (u && u.blob && u.blob.size > 0) {
+      recuperada = u;
+      $("rec-info").textContent = u.meta.nome + " · " + (u.blob.size / 1048576).toFixed(1) + " MB · " + descreverQuando(u.meta.quando) + (u.meta.parcial ? " (gravação interrompida)" : "");
+      box.hidden = false;
+    }
+  }
+  $("recuperar").addEventListener("click", function () { if (recuperada) mostrarRevisao(recuperada.blob, recuperada.meta.nome); });
 
   els.gravar.addEventListener("click", aoTocarGravar);
   $("mais-lento").addEventListener("click", function () { prefs.vel = Math.max(1, prefs.vel - 1); els.vel.value = prefs.vel; rotulosVel(); guardar(); });
@@ -461,19 +527,22 @@ Manda esse vídeo para quem tem loja.` },
 
   function arquivo() { return new File([blobFinal], nomeFinal, { type: blobFinal.type }); }
   $("salvar").addEventListener("click", async function () {
-    try {
-      var f = arquivo();
-      if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: nomeFinal }); return; }
-    } catch (e) { if (e && e.name === "AbortError") return; }
-    baixar();
+    var f;
+    try { f = arquivo(); } catch (e) { statusSalvar("Não consegui preparar o arquivo. Toque em <b>Baixar arquivo</b>."); return; }
+    if (!navigator.share) { statusSalvar("Este navegador não tem a lista de compartilhar. Toque em <b>Baixar arquivo</b>."); return; }
+    if (navigator.canShare && !navigator.canShare({ files: [f] })) { statusSalvar("Este aparelho não compartilha esse tipo de vídeo. Toque em <b>Baixar arquivo</b>."); return; }
+    try { await navigator.share({ files: [f] }); statusSalvar("Pronto. Se você escolheu o Drive ou o WhatsApp, o vídeo foi enviado."); }
+    catch (e) {
+      if (e && e.name === "AbortError") statusSalvar("Compartilhamento cancelado.");
+      else statusSalvar("Não consegui abrir a lista de compartilhar (código: " + ((e && e.name) || "erro") + "). Toque em <b>Baixar arquivo</b>.");
+    }
   });
-  function baixar() {
-    var a = document.createElement("a"); a.href = URL.createObjectURL(blobFinal); a.download = nomeFinal;
-    document.body.appendChild(a); a.click(); a.remove();
-  }
-  $("baixar").addEventListener("click", baixar);
+  // o botao Baixar e um link de verdade: o toque do dedo e o jeito mais confiavel de baixar no celular
+  $("baixar").addEventListener("click", function () {
+    statusSalvar("Baixando <b>" + nomeFinal + "</b>. Se o navegador perguntar, toque em <b>Permitir</b>. O vídeo vai para a pasta <b>Downloads</b> (aplicativo Arquivos). Se nada aparecer em 5 segundos, use <b>Compartilhar</b>.");
+  });
 
-  if ("serviceWorker" in navigator) { navigator.serviceWorker.register("/teleprompter-sw.js", { scope: "/teleprompter.html" }).catch(function () {}); }
+  verificarGravacaoGuardada();
   window.addEventListener("resize", function () { if (els.palco.classList.contains("ativa")) { var o = off; montarTexto(); off = o; desenhar(); atualizarGuia(); } });
   if (!window.isSecureContext) { mostrarAviso("<b>Atenção:</b> a câmera só funciona se esta página abrir por https (ou em localhost)."); }
 })();
