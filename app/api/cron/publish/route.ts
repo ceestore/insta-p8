@@ -22,6 +22,10 @@ const RETRY_MINUTES = 15
 const DUE_PER_RUN = 4
 const PROCESSING_TIMEOUT_MIN = 60
 const POLL_UNTIL_MS = 45_000
+// Code 4/2207051: Meta's anti-spam block on publishing ("We restrict certain activity to protect our community"),
+// despite the "Application request limit reached" text. Retrying the same post only makes the account look
+// more like spam, so it fails at once and the owner is told to review caption and images.
+const SPAM_BLOCK = /\b4\/2207051\b/
 
 type Row = {
   id: string
@@ -78,6 +82,10 @@ export async function GET(request: NextRequest) {
   }
 
   async function fail(row: Row, message: string, retry: boolean) {
+    if (SPAM_BLOCK.test(message)) {
+      retry = false
+      message = `o Instagram bloqueou a publicação como possível spam (revise legenda e imagens antes de reagendar) · ${message}`
+    }
     const attempts = row.attempts + 1
     if (retry && attempts < MAX_ATTEMPTS) {
       await update(row.id, {

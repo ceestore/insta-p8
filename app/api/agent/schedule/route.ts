@@ -12,6 +12,7 @@ import { POST_KINDS, isVideo, ruleProblem, type PostKind } from "@/lib/publishin
 //   For a story, the rule answers replies to the Story; otherwise it answers comments.
 //   trial: true (reel only) → Reel de teste, shown to non-followers first (migrations/009).
 // GET /api/agent/schedule?from=ISO — upcoming and recent items.
+//   &detalhe=1 also returns caption, rule, files and 10-minute links to the files (to review a failed post).
 // DELETE /api/agent/schedule?id=… or ?batch=… — cancels items that were not published yet.
 
 function kindProblem(kind: PostKind, paths: string[], cover?: string) {
@@ -73,14 +74,25 @@ export async function GET(request: NextRequest) {
   const { db, user } = await agentUser(request)
   if (!user) return NextResponse.json({ error: "Nenhuma conta do Instagram conectada" }, { status: 400 })
   const from = request.nextUrl.searchParams.get("from") || new Date(Date.now() - 2 * 86_400_000).toISOString()
+  const detail = request.nextUrl.searchParams.get("detalhe") === "1"
+  const fields = "id, kind, label, batch, scheduled_at, status, permalink, error, attempts, published_at"
   const { data, error } = await db
     .from("scheduled_posts")
-    .select("id, kind, label, batch, scheduled_at, status, permalink, error, attempts, published_at")
+    .select(detail ? `${fields}, caption, rule, media_paths, cover_path` : fields)
     .eq("user_id", user.id)
     .gte("scheduled_at", from)
     .order("scheduled_at", { ascending: true })
     .limit(300)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (detail) {
+    // Files are removed once a post is published; failed and pending items still have them.
+    for (const row of (data || []) as any[]) {
+      const files = [...(row.media_paths || []), ...(row.cover_path ? [row.cover_path] : [])]
+      if (!files.length || row.status === "published") continue
+      const { data: signed } = await db.storage.from(FILES_BUCKET).createSignedUrls(files, 600)
+      row.file_urls = (signed || []).map((s: any) => s.signedUrl || null)
+    }
+  }
   return NextResponse.json({ ok: true, items: data })
 }
 

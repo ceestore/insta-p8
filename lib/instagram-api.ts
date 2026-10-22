@@ -34,7 +34,8 @@ export function describeGraphError(error: any): string {
   if (typeof error === "string") return error
   if (error.name === "TimeoutError" || error.name === "AbortError") return "o Instagram demorou para responder"
   const code = error.code ? `código ${error.code}${error.error_subcode ? `/${error.error_subcode}` : ""}` : ""
-  return [error.message || error.type, code].filter(Boolean).join(" · ").slice(0, 300)
+  // error_user_msg is Meta's own explanation (e.g. the anti-spam block behind code 4/2207051).
+  return [error.message || error.type, code, error.error_user_msg].filter(Boolean).join(" · ").slice(0, 400)
 }
 
 async function post(path: string, token: string, body: any): Promise<SendResult> {
