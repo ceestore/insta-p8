@@ -29,7 +29,8 @@ Fale em português do Brasil. Nunca mostre chaves ou tokens. Pasta de trabalho d
    - **Se o Instagram falhar** (pediu login, bloqueou, página vazia), tente uma vez pelo navegador do Chrome
      (`mcp__claude-in-chrome__*`): abra `https://www.instagram.com/<handle>/` e leia com `get_page_text`. Sem login, sem cliques
      além de abrir o perfil. Se também falhar, ponto `nv` com o motivo.
-   - **Site (se o coletor não trouxe o suficiente):** `firecrawl_scrape` (`formats: ["markdown","links"]`, `maxAge: 0`).
+   - **Site (se o coletor não trouxe o suficiente):** Crawl4AI, `py scripts/ler_pagina.py "<site>" --max-chars 20000`
+     (no Linux/nuvem: `python3`). Não use o FireCrawl.
    - `curtidas` e `comentarios` de cada post são só indícios (a amostra é pequena): use para "poucos comentários", nunca para
      estimar alcance ou resultado.
    - **Anúncios:** só se achar o ID/link da página; `ads_library_search` com `page_ids`, `countries:["BR"]`. Sem ID → `nv`.

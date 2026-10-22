@@ -120,6 +120,17 @@ traz seguidores. Reel de teste não aparece no perfil até ser promovido.
 | **Claude Code no computador** (pasta `insta-p8`) | ✅ Tudo | Usa o arquivo `.env.local` com as senhas. Melhor para `/semana-conteudo` (gera vídeos) |
 | **Claude Code na nuvem** (web/celular) | ✅ Publicar e agendar | A senha `AUTOMATION_API_KEY` está nas configurações do ambiente. As fontes dos slides podem sair diferentes |
 
+**Leitor de páginas (Crawl4AI):** para ler os anúncios e sites, o Claude usa o `scripts/ler_pagina.py`, um leitor
+grátis que roda no seu computador (substituiu o FireCrawl, que cobrava créditos). Instale uma vez no PowerShell, na pasta
+do projeto:
+
+```
+py -m pip install -U crawl4ai
+crawl4ai-setup
+```
+
+Na nuvem, o leitor pode não abrir os sites (o navegador de lá não aceita a conexão); no computador funciona.
+
 **Um chat por tarefa.** Abra um chat novo para cada semana ou produto: o Claude lê este guia e o `CLAUDE.md`
 sozinho, então não precisa explicar tudo de novo. Chats antigos podem ser arquivados: tudo que foi feito
 está salvo no projeto (GitHub).
@@ -141,5 +152,6 @@ As mudanças de código ficam num "pedido" no GitHub. Para elas entrarem no ar: 
 | 05/10 | Posts do termômetro (PONTO) e do kit alicate (ALICATE); `link.amazon` reconhecido como afiliado; produto entra na Vitrine já no primeiro Story |
 | 05/10 | Reels de teste (só para quem não segue, promoção automática) na `/semana-conteudo` |
 | 05/10 | Mais 2 Reels por produto: passo a passo e perguntas e respostas |
+| 21/10 | Leitor de páginas próprio com o Crawl4AI (grátis) no lugar do FireCrawl |
 
 Detalhes técnicos: `README.md`.

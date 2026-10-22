@@ -31,7 +31,7 @@ produtos na lista final (padrão: 10).
 ## 2. Coletar candidatos
 
 **Mercado Livre** — abra as páginas de mais vendidos pelo navegador do usuário (Claude in Chrome:
-`navigate` + `get_page_text`; páginas em `config.mercado_livre.mais_vendidos`; para Casa e Brinquedos, navegue
+`navigate` + `get_page_text`; sem o Chrome, `py scripts/ler_pagina.py "<página>"`; páginas em `config.mercado_livre.mais_vendidos`; para Casa e Brinquedos, navegue
 pelo menu de categorias da página de mais vendidos se o link direto não abrir). Leitura pontual de poucas páginas,
 como uma visita normal — não fique varrendo. Colete: posição, título, preço atual, nota, "+N vendidos", frete grátis.
 
@@ -42,8 +42,8 @@ comissão nem vendas: ordene por curtidas, nota e desconto e diga que a comissã
 (Oferta de produto). Se a Open API estiver liberada (`config.shopee.open_api`), prefira-a.
 
 **Amazon** — peça ao usuário os links (ou ASINs) que ele separou nas páginas de mais vendidos/em alta. Para cada um,
-leia a página do produto (firecrawl_scrape, uma por vez) para pegar título, categoria, preço, nota e nº de
-avaliações. A comissão vem da tabela `config.amazon.comissao_por_categoria`.
+leia a página do produto, uma por vez, com o Crawl4AI (`py scripts/ler_pagina.py "<link>"`; no Linux/nuvem: `python3`)
+para pegar título, categoria, preço, nota e nº de avaliações. Nunca rode o script em listas de mais vendidos da Amazon. A comissão vem da tabela `config.amazon.comissao_por_categoria`.
 
 ## 3. Avaliar e ranquear
 
