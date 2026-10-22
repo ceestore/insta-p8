@@ -158,6 +158,10 @@ envio falhar no meio, rode de novo: os já agendados (`agenda.result.json`) são
 ## Problemas comuns
 
 - `agenda` diz "FALHOU": o motivo aparece na linha; o sistema tenta 3 vezes e manda alerta (ntfy/e-mail).
+- "bloqueou a publicação como possível spam" (código 4/2207051): o anti-spam do Instagram recusou **aquele post**; o
+  sistema não tenta de novo (repetir piora). Veja legenda, regra e imagens com
+  `GET /api/agent/schedule?detalhe=1` (traz links de 10 min para os arquivos), corrija o que parecer spam (links na legenda,
+  hashtags demais, texto repetido de outro post, imagem igual a outro post) e só então reagende.
 - Falha de permissão de publicação: adicionar `instagram_business_content_publish` no app da Meta e reconectar.
 - Voz: o gerador usa primeiro a **voz local** (Kokoro "Dora" + Whisper para o tempo das palavras), instalada em `E:/Ferramentas/voz` (`CEE_VOZ_DIR` muda a pasta, `CEE_VOZ_VOICE` a voz). Se ela faltar, cai na voz da Microsoft (Edge), que devolveu erro 403 em 13/10; `CEE_VOZ=edge` força essa.
 - O `reel-hf.mjs` precisa do Python 3.12 com numpy (efeitos sonoros da skill `/edicao-motion`), do Chrome e de internet na primeira execução (baixa o `hyperframes` e a fonte Nunito para `conteudo/kit/assets/`).
